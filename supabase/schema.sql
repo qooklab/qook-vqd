@@ -1,0 +1,5 @@
+create table if not exists public.stock_latest (code text primary key,name text not null,price numeric,per numeric,pbr numeric,volume bigint,dividend_yield numeric,margin_score integer check(margin_score between 0 and 15),dividend_history_score integer check(dividend_history_score between 0 and 10),buyback_score integer check(buyback_score between 0 and 10),profit_score integer check(profit_score between 0 and 10),balance_score integer check(balance_score between 0 and 10),growth_score integer check(growth_score between 0 and 10),moat_score integer check(moat_score between 0 and 5),buy_price numeric,updated_at timestamptz not null default now());
+create table if not exists public.price_history(code text not null,captured_at timestamptz not null default now(),price numeric not null,primary key(code,captured_at));
+alter table public.stock_latest enable row level security;
+alter table public.price_history enable row level security;
+-- Service role only. Do not expose service role key to client.

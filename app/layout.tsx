@@ -1,0 +1,1 @@
+import './style.css';import type {ReactNode} from 'react';export const metadata={title:'Qook VQD',description:'저평가 우량 배당주 모니터링'};export default function RootLayout({children}:{children:ReactNode}){return <html lang='ko'><body>{children}</body></html>}
