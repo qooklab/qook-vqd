@@ -6,7 +6,8 @@ function metric(rows:Row[],ids:string[],names:string[],section:string){
  const row=rows.find(x=>x.sj_div===section&&(ids.includes(x.account_id)||names.includes(x.account_nm)));
  return number(row?.thstrm_amount);
 }
-export async function financialScores(code:string){
+export type FinancialScoreResult={profit_score?:number;balance_score?:number;growth_score?:number;note:string};
+export async function financialScores(code:string):Promise<FinancialScoreResult>{
  const corp=await findCorp(code);if(!corp)return {note:'DART 기업 고유번호 미확인'};
  const y=new Date().getUTCFullYear()-1;
  const data=await Promise.all([y-2,y-1,y].map(year=>dartFinancials(corp,year,'11011').catch(()=>null)));
