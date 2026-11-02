@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {db} from '@/lib/db';
 import {stocks,calculate} from '@/lib/stocks';
 import ManualRefresh from './manual-refresh';
+import StockTable,{type StockRow} from './stock-table';
 export const dynamic='force-dynamic';
 const number=(value:unknown)=>value==null?'—':Number(value).toLocaleString('ko-KR');
 export default async function Home(){
@@ -20,8 +21,7 @@ export default async function Home(){
    {!client&&<div className="notice">Supabase 환경변수가 없어 종목 목록만 표시하고 있어요.</div>}
    <ManualRefresh/>
    <section className="holdings" aria-label="종목 분석 현황"><div className="section-heading"><div><span className="section-overline">STOCK UNIVERSE</span><h2>종목 분석 현황 <span className="count-badge">{rows.length}</span></h2></div><span className="section-meta">종목을 누르면 상세 평가를 확인할 수 있어요</span></div>
-    <div className="tablewrap"><table className="stock-table"><thead><tr><th>종목명</th><th>최근 수집가</th><th>PER</th><th>PBR</th><th>평가 점수</th><th>적정매수가</th><th>업데이트</th></tr></thead><tbody>{rows.map(r=><tr key={r.code}><td><Link className="stock-link" href={`/stocks/${r.code}`}><span className="stock-icon">{r.name.slice(0,1)}</span><span><strong>{r.name}</strong><small>{r.code}</small></span><span className="stock-arrow">↗</span></Link></td><td className="price-cell">{r.price!=null?number(r.price)+'원':<span className="empty-label">미수집</span>}</td><td>{r.per??'—'}</td><td>{r.pbr??'—'}</td><td><span className={r.complete?'score-pill complete':'score-pill'}>{r.assessed} <span>/ {r.possible}</span></span></td><td>{r.buy_price!=null?number(r.buy_price)+'원':'—'}</td><td className="updated-cell">{r.updated_at?new Date(r.updated_at).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}):'—'}</td></tr>)}</tbody></table></div>
-    <div className="mobile-stock-list">{rows.map(r=><Link href={`/stocks/${r.code}`} className="mobile-stock-card" key={r.code}><div className="mobile-stock-top"><span className="stock-icon">{r.name.slice(0,1)}</span><div className="mobile-stock-name"><strong>{r.name}</strong><small>{r.code}</small></div><div className="mobile-stock-price"><strong>{r.price!=null?number(r.price)+'원':'미수집'}</strong><small>최근 수집가</small></div></div><div className="mobile-stock-bottom"><span>PER <b>{r.per??'—'}</b></span><span>PBR <b>{r.pbr??'—'}</b></span><span>평가 <b>{r.assessed}/{r.possible}</b></span><span className="mobile-chevron">↗</span></div></Link>)}</div>
+    <StockTable rows={rows as StockRow[]}/>
    </section>
    <footer className="footer"><span>© Qook VQD · VALUE, QUALITY & DIVIDEND</span><span>시세는 KIS API 수집 시점 기준이며 투자 권유가 아닙니다.</span></footer>
   </main></div>;
