@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from 'next/server';
 import {stocks} from '@/lib/stocks';
 import {db} from '@/lib/db';
 import {quote} from '@/lib/kis';
+import {financialScores} from '@/lib/financial-score';
 export const runtime='nodejs';
 export const maxDuration=30;
 export async function POST(req:NextRequest){
@@ -18,8 +19,11 @@ export async function POST(req:NextRequest){
  try{
   const q=await quote(code);
   if(q.price==null)throw Error('API 응답에 가격이 없습니다');
-  const {error}=await client.from('stock_latest').upsert({code,name:found[0],...q,updated_at:new Date().toISOString()},{onConflict:'code'});
+  const scores=await financialScores(code).catch(()=>null);
+  const extra:Record<string,number>={};
+  if(scores)for(const field of ['profit_score','balance_score','growth_score'] as const){if(typeof scores[field]==='number')extra[field]=scores[field]!;}
+  const {error}=await client.from('stock_latest').upsert({code,name:found[0],...q,...extra,updated_at:new Date().toISOString()},{onConflict:'code'});
   if(error)throw error;
-  return NextResponse.json({ok:true,code,price:q.price,updated_at:new Date().toISOString()},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({ok:true,code,price:q.price,dartNote:scores?.note||'DART 자료 미확인',updated_at:new Date().toISOString()},{headers:{'Cache-Control':'no-store'}});
  }catch(e){console.error('Manual refresh failed',code,e);return NextResponse.json({error:'수집 실패: '+(e instanceof Error?e.message:'알 수 없는 오류')},{status:502});}
 }
