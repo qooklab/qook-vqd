@@ -15,7 +15,7 @@ export async function financialScores(code:string){
  const profits=years.map(rows=>metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'IS')??metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'CIS'));
  const result:{profit_score?:number;balance_score?:number;growth_score?:number;note:string}={note:'DART 연결 사업보고서 3개년 기준'};
  if(profits.every(x=>x!==null)){
-  const positive=profits.filter(x=>x!>0).length;
+  const positive=profits.filter(x=>(x !== null && x > 0)).length;
   result.profit_score=[0,3,6,10][positive];
   const start=profits[0]!,end=profits[2]!;
   if(start>0&&end>0){const g=Math.sqrt(end/start)-1;result.growth_score=g>=.15?10:g>=.1?8:g>=.05?6:g>=0?4:2;}
