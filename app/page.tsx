@@ -25,50 +25,33 @@ export default async function Home() {
     <div className="site-shell">
       <Header />
       <main id="main-content" className="dashboard">
-        <section className="hero">
+        <section className="workspace-heading" aria-labelledby="page-title">
           <div>
-            <div className="hero-kicker">QOOK VQD · 투자 리서치</div>
-            <h1>
-              가격 너머의 가치를,
-              <br />
-              <span>차분하게 읽다.</span>
-            </h1>
-            <p>
-              좋은 기업을 합리적인 가격에.
-              <br />
-              국내 우량 배당주의 가격과 펀더멘털을 함께 살펴봅니다.
-            </p>
+            <span className="workspace-kicker">Value · Quality · Dividend</span>
+            <h1 id="page-title">종목 리서치</h1>
+            <p>가격과 기업의 질, 주주환원을 같은 기준으로 살펴보세요.</p>
           </div>
-          <div className="hero-aside">
-            <div className="framework-line">
-              <strong>Value</strong>
-              <small>가격의 합리성</small>
-            </div>
-            <div className="framework-line">
-              <strong>Quality</strong>
-              <small>기업의 지속성</small>
-            </div>
-            <div className="framework-line">
-              <strong>Dividend</strong>
-              <small>주주환원의 가치</small>
-            </div>
-            <Link href="/methodology" className="hero-method-link">
-              투자 철학과 평가 기준 <span>→</span>
-            </Link>
-          </div>
-        </section>
-        <section className="overview" aria-label="데이터 수집 현황">
-          <div className="overview-heading">
-            <span className="section-overline">리서치 현황</span>
+          <div className="workspace-context">
+            <span className="collection-status">
+              <span className="status-dot" aria-hidden="true" />
+              {collected > 0
+                ? "시세 " + collected + "종목 수집"
+                : "시세 수집 대기"}
+            </span>
             <span className="section-meta">
               {updated
                 ? "최근 수집 " +
                   new Date(updated).toLocaleString("ko-KR", {
                     timeZone: "Asia/Seoul",
                   })
-                : "아직 수집된 데이터가 없습니다"}
+                : "수집된 데이터가 아직 없습니다"}
             </span>
+            <Link className="text-link" href="/methodology">
+              평가 기준 알아보기 →
+            </Link>
           </div>
+        </section>
+        <section className="overview" aria-label="데이터 수집 현황">
           <div className="stats">
             <div className="stat-card">
               <div className="stat-label">모니터링 종목</div>
@@ -128,7 +111,7 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <h2 id="universe-title">
-                종목 리서치 <span className="count-badge">{rows.length}</span>
+                모니터링 종목 <span className="count-badge">{rows.length}</span>
               </h2>
             </div>
             <Link className="text-link" href="/methodology">

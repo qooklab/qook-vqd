@@ -24,6 +24,12 @@ const cols: { key: Key; label: string }[] = [
   { key: "buy_price", label: "적정매수가" },
   { key: "updated_at", label: "최근 수집일" },
 ];
+const scopes = [
+  ["all", "전체"],
+  ["complete", "평가 완료"],
+  ["partial", "일부 평가"],
+  ["waiting", "미평가"],
+] as const;
 const fmt = (v: number | null) => (v == null ? "—" : v.toLocaleString("ko-KR"));
 function Score({ row: r }: { row: StockRow }) {
   return (
@@ -58,7 +64,13 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<(typeof scopes)[number][0]>("all");
+  const scopeCounts = {
+    all: rows.length,
+    complete: rows.filter((r) => r.complete).length,
+    partial: rows.filter((r) => r.possible > 0 && !r.complete).length,
+    waiting: rows.filter((r) => r.possible === 0).length,
+  };
   const ordered = useMemo(
     () =>
       rows
@@ -67,9 +79,11 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
             (r.name.toLowerCase().includes(query.trim().toLowerCase()) ||
               r.code.includes(query.trim())) &&
             (filter === "all" ||
-              (filter === "complete"
-                ? r.complete
-                : r.possible > 0 && !r.complete)),
+              (filter === "waiting"
+                ? r.possible === 0
+                : filter === "complete"
+                  ? r.complete
+                  : r.possible > 0 && !r.complete)),
         )
         .sort((a, b) => {
           const av = a[sort],
@@ -99,22 +113,6 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
   return (
     <>
       <div className="table-toolbar">
-        <div className="filter-group" role="group" aria-label="평가 상태 필터">
-          {[
-            ["all", "전체 종목"],
-            ["complete", "평가 완료"],
-            ["partial", "일부 평가"],
-          ].map(([value, label]) => (
-            <button
-              type="button"
-              key={value}
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className="search-field" role="search" aria-label="종목 검색">
           <svg
             className="search-icon"
@@ -163,6 +161,28 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
             {ordered.length} 종목
           </span>
         </div>
+        <div
+          className="filter-group"
+          role="radiogroup"
+          aria-label="평가 상태 필터"
+        >
+          {scopes.map(([value, label]) => (
+            <label key={value}>
+              <input
+                className="sr-only"
+                type="radio"
+                name="assessment-scope"
+                value={value}
+                checked={filter === value}
+                onChange={() => setFilter(value)}
+              />
+              <span>
+                {label}
+                <small>{scopeCounts[value]}</small>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
       <p className="score-guide">
         <span className="legend-dot" /> 확인 점수 / 100점{" "}
@@ -192,8 +212,16 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
       {ordered.length === 0 ? (
         <div className="empty-state" role="status">
           <span>검색 결과 없음</span>
-          <h3>조건에 맞는 종목이 없습니다.</h3>
-          <p>검색어나 평가 상태를 변경해 보세요.</p>
+          <h3>
+            {query.trim()
+              ? "검색한 종목을 찾지 못했습니다."
+              : "아직 해당 상태의 종목이 없습니다."}
+          </h3>
+          <p>
+            {query.trim()
+              ? "종목명이나 6자리 코드를 다시 확인해 주세요."
+              : "다른 평가 상태를 선택하거나 전체 종목을 확인해 주세요."}
+          </p>
           <button
             type="button"
             onClick={() => {
@@ -201,7 +229,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
               setFilter("all");
             }}
           >
-            전체 종목 보기 ›
+            전체 종목 보기
           </button>
         </div>
       ) : (
