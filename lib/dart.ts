@@ -1,7 +1,14 @@
+import {db} from './db';
 import {inflateRawSync} from 'node:zlib';
 let map:Map<string,string>|null=null;
 export async function findCorp(code:string){
  const key=process.env.DART_API_KEY;if(!key)return null;
+ const client=db();
+ if(client){
+  const lookup=await client.from('dart_corp_cache').select('corp_code,checked_at').eq('stock_code',code).maybeSingle();
+  if(lookup.error)throw Error('DART 기업코드 캐시 테이블 미설정');
+  if(lookup.data?.corp_code&&Date.now()-new Date(lookup.data.checked_at).getTime()<30*86400000)return lookup.data.corp_code;
+ }
  if(!map){
   const u=new URL('https://opendart.fss.or.kr/api/corpCode.xml');u.searchParams.set('crtfc_key',key);
   const response=await fetch(u,{cache:'no-store'});if(!response.ok)throw Error('DART corpCode HTTP '+response.status);
@@ -41,7 +48,9 @@ export async function findCorp(code:string){
   }
   if(map.size<100)throw Error('DART 기업코드 목록이 비어 있습니다');
  }
- return map.get(code==='005935'?'005930':code)||null;
+ const corp=map.get(code==='005935'?'005930':code)||null;
+ if(corp&&client){const saved=await client.from('dart_corp_cache').upsert({stock_code:code,corp_code:corp,checked_at:new Date().toISOString()},{onConflict:'stock_code'});if(saved.error)throw Error('DART 기업코드 캐시 저장 실패');}
+ return corp;
 }
 export async function dartFinancials(corpCode:string,year:number,reprtCode='11014'){const key=process.env.DART_API_KEY;if(!key)throw Error('DART_API_KEY missing');const u=new URL('https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json');for(const [k,v] of Object.entries({crtfc_key:key,corp_code:corpCode,bsns_year:String(year),reprt_code:reprtCode,fs_div:'CFS'}))u.searchParams.set(k,v);const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error(`DART HTTP ${r.status}`);const j=await r.json();if(j.status!=='000')throw Error(`DART ${j.status}: ${j.message}`);return j.list as Record<string,string>[];}
 // DART corp_code (8 digits) differs from the stock ticker (6 digits).
