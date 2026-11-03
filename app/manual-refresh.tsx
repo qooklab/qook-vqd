@@ -23,7 +23,7 @@ export default function ManualRefresh(){
     const name=stocks.find(x=>x[1]===code)?.[0]||code;
     // The KIS gateway enforces a per-second request limit shared across app keys.
     // Space requests out, even when a previous request failed.
-    if(results.length>0)await sleep(1500);
+    if(results.length>0&&mode==='price')await sleep(1500);
     let outcome:Outcome={code,name,ok:false,error:'알 수 없는 오류'};
     let stop=false;
     for(let attempt=0;attempt<4;attempt++){
@@ -63,7 +63,7 @@ export default function ManualRefresh(){
   </div>
   <div className="manual-list">{visible.map(([name,code])=><label key={code}><input type="checkbox" checked={selected.includes(code)} disabled={running} onChange={()=>toggle(code)}/>{name} <small>{code}</small></label>)}</div>
   <div className="manual-controls"><input aria-label="수동 갱신 인증키" type="password" autoComplete="off" placeholder="CRON_SECRET 입력 (저장되지 않음)" value={secret} disabled={running} onChange={e=>setSecret(e.target.value)}/><button type="button" onClick={()=>run('price')} disabled={running||selected.length===0||!secret}>{running?'갱신 중…':`선택한 ${selected.length}종목 갱신`}</button><button type="button" onClick={()=>run('financial')} disabled={running||selected.length===0||!secret}>{running?'처리 중…':'선택 종목 DART 재무평가'}</button></div>
-  <p><small>DART 재무평가는 시세 API 호출 없이 이익 안정성·재무 건전성·성장률을 계산합니다. 평가할 수 없는 종목은 실패 사유를 표시합니다.</small></p>
+  <p><small>DART 재무평가는 7일간 캐시를 재사용하며 시세 API 호출 없이 이익 안정성·재무 건전성·성장률을 계산합니다. 평가할 수 없는 종목은 실패 사유를 표시합니다.</small></p>
   {(running||outcomes.length>0)&&<div role="status" aria-live="polite"><progress max={selected.length||1} value={done}/><p>{done}/{selected.length} 완료 · 성공 {outcomes.filter(x=>x.ok).length} · 실패 {outcomes.filter(x=>!x.ok).length}{!running&&done<selected.length?' · 오류로 조기 중단':''}</p></div>}
   {outcomes.some(x=>!x.ok)&&<div className="manual-errors"><strong>오류 내역</strong>{outcomes.filter(x=>!x.ok).map(x=><p key={x.code}>{x.name}: {x.error}</p>)}</div>}
   <p><small>보안: CRON_SECRET은 이 화면에서만 사용하며 브라우저 저장소에 보관하지 않습니다. 공용 PC에서는 사용하지 마세요. 이 기능은 선택한 종목만 갱신하며 국내 전체 상장종목 검색은 아직 지원하지 않습니다.</small></p>
