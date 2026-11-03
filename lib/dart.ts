@@ -15,7 +15,7 @@ export async function findCorp(code:string){
   }
   if(!xml)throw Error('DART 기업목록 ZIP 파싱 실패');
   map=new Map();
-  for(const x of xml.matchAll(/<list>(.*?)<\/list>/gs)){
+  for(const x of xml.matchAll(/<list>([\s\S]*?)<\/list>/g)){
    const stock=x[1].match(/<stock_code>(\d{6})<\/stock_code>/)?.[1];
    const corp=x[1].match(/<corp_code>(\d{8})<\/corp_code>/)?.[1];
    if(stock&&corp)map.set(stock,corp);
