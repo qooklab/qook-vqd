@@ -11,8 +11,9 @@ export type FinancialScoreResult={profit_score?:number;balance_score?:number;gro
 export async function financialScores(code:string):Promise<FinancialScoreResult>{
  const corp=await findCorp(code);if(!corp)return {note:'DART 기업 고유번호 미확인'};
  const y=new Date().getUTCFullYear()-1;
- const data=await Promise.all([y-2,y-1,y].map(year=>dartFinancials(corp,year,'11011').catch(()=>null)));
- if(data.some(x=>!x))return {note:'DART 최근 3개년 연결 사업보고서 조회 실패 또는 자료 없음'};
+ const data=await Promise.all([y-2,y-1,y].map(async year=>{try{return await dartFinancials(corp,year,'11011');}catch(error){return {error:year+'년 '+(error instanceof Error?error.message:'조회 실패')};}}));
+ const failures=data.filter((x):x is {error:string}=>!Array.isArray(x));
+ if(failures.length)return {note:failures.map(x=>x.error).join(' / ').slice(0,300)};
  const years=data as Row[][];
  const profits=years.map(rows=>metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'IS')??metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'CIS'));
  const result:FinancialScoreResult={note:'DART 연결 사업보고서 3개년 기준'};
