@@ -3,7 +3,8 @@ type Row=Record<string,string>;
 const financials=new Set(['105560','055550','086790','138040','316140','024110','000810','032830','071050','138930','175330','139130']);
 function number(value:string|undefined){if(!value)return null;const n=Number(value.replace(/,/g,''));return Number.isFinite(n)?n:null;}
 function metric(rows:Row[],ids:string[],names:string[],section:string){
- const row=rows.find(x=>x.sj_div===section&&(ids.includes(x.account_id)||names.includes(x.account_nm)));
+ const candidates=rows.filter(x=>x.sj_div===section);
+ const row=candidates.find(x=>ids.includes(x.account_id))||candidates.find(x=>names.includes(x.account_nm?.trim()));
  return number(row?.thstrm_amount);
 }
 export type FinancialScoreResult={profit_score?:number;balance_score?:number;growth_score?:number;note:string};
@@ -11,10 +12,10 @@ export async function financialScores(code:string):Promise<FinancialScoreResult>
  const corp=await findCorp(code);if(!corp)return {note:'DART 기업 고유번호 미확인'};
  const y=new Date().getUTCFullYear()-1;
  const data=await Promise.all([y-2,y-1,y].map(year=>dartFinancials(corp,year,'11011').catch(()=>null)));
- if(data.some(x=>!x))return {note:'최근 3개년 연결 사업보고서 부족'};
+ if(data.some(x=>!x))return {note:'DART 최근 3개년 연결 사업보고서 조회 실패 또는 자료 없음'};
  const years=data as Row[][];
  const profits=years.map(rows=>metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'IS')??metric(rows,['dart_OperatingIncomeLoss'],['영업이익','영업이익(손실)'],'CIS'));
- const result:{profit_score?:number;balance_score?:number;growth_score?:number;note:string}={note:'DART 연결 사업보고서 3개년 기준'};
+ const result:FinancialScoreResult={note:'DART 연결 사업보고서 3개년 기준'};
  if(profits.every(x=>x!==null)){
   const positive=profits.filter(x=>(x !== null && x > 0)).length;
   result.profit_score=[0,3,6,10][positive];
@@ -26,5 +27,6 @@ export async function financialScores(code:string):Promise<FinancialScoreResult>
   const rows=years[2],debt=metric(rows,['ifrs-full_Liabilities','ifrs_Liabilities'],['부채총계'],'BS'),equity=metric(rows,['ifrs-full_Equity','ifrs_Equity'],['자본총계'],'BS');
   if(debt!==null&&equity!==null&&equity>0){const r=debt/equity;result.balance_score=r<=.5?10:r<=1?8:r<=1.5?6:r<=2?4:r<=3?2:0;}
  }
+ if(result.profit_score===undefined&&result.balance_score===undefined&&result.growth_score===undefined)result.note='DART 재무제표 수신, 점수 계산에 필요한 계정과목 누락';
  return result;
 }
