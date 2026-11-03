@@ -13,13 +13,14 @@ export async function findCorp(code:string){
    const data=b.subarray(start,start+b.readUInt32LE(i+20));
    xml=(b.readUInt16LE(i+10)===8?inflateRawSync(data):data).toString();break;
   }
-  if(!xml)throw Error('DART corp ZIP parse failed');
+  if(!xml)throw Error('DART 기업목록 ZIP 파싱 실패');
   map=new Map();
   for(const x of xml.matchAll(/<list>(.*?)<\/list>/gs)){
    const stock=x[1].match(/<stock_code>(\d{6})<\/stock_code>/)?.[1];
    const corp=x[1].match(/<corp_code>(\d{8})<\/corp_code>/)?.[1];
    if(stock&&corp)map.set(stock,corp);
   }
+  if(map.size<100)throw Error('DART 기업코드 목록이 비어 있습니다');
  }
  return map.get(code==='005935'?'005930':code)||null;
 }
