@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 export type StockRow = {
   name: string;
@@ -57,6 +57,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
   const [sort, setSort] = useState<Key>("assessed");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
   const [query, setQuery] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState("all");
   const ordered = useMemo(
     () =>
@@ -114,18 +115,54 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
             </button>
           ))}
         </div>
-        <label className="search-field">
-          <span aria-hidden="true">⌕</span>
+        <div className="search-field" role="search" aria-label="종목 검색">
+          <svg
+            className="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m16 16 4.5 4.5" />
+          </svg>
           <input
+            ref={searchInput}
+            type="search"
             aria-label="리서치 종목 검색"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setQuery("");
+            }}
             placeholder="종목명 또는 코드 검색"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <span className="search-count" aria-live="polite">
+          {query && (
+            <button
+              className="search-clear"
+              type="button"
+              aria-label="검색어 지우기"
+              onClick={() => {
+                setQuery("");
+                searchInput.current?.focus();
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+              >
+                <path d="m7 7 10 10M17 7 7 17" />
+              </svg>
+            </button>
+          )}
+          <span className="search-count" aria-live="polite" aria-atomic="true">
             {ordered.length} 종목
           </span>
-        </label>
+        </div>
       </div>
       <p className="score-guide">
         <span className="legend-dot" /> 확인 점수 / 100점{" "}
@@ -164,7 +201,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
               setFilter("all");
             }}
           >
-            전체 종목 보기 ↗
+            전체 종목 보기 ›
           </button>
         </div>
       ) : (
@@ -218,7 +255,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                           <small>KRX · {r.code}</small>
                         </span>
                         <span className="stock-arrow" aria-hidden="true">
-                          ↗
+                          ›
                         </span>
                       </Link>
                     </th>
@@ -270,7 +307,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                     <small>KRX · {r.code}</small>
                   </div>
                   <span className="mobile-chevron" aria-hidden="true">
-                    ↗
+                    ›
                   </span>
                 </div>
                 <div className="mobile-card-data">

@@ -46,12 +46,8 @@ export default function Methodology() {
         <Link href="/" className="back-link">
           ← 대시보드로 돌아가기
         </Link>
-        <div className="eyebrow">
-          <span className="eyebrow-line" /> INVESTMENT PHILOSOPHY{" "}
-          <span className="eyebrow-muted">/ METHODOLOGY</span>
-        </div>
         <section className="method-intro">
-          <span className="section-overline">WHY WE INVEST THIS WAY</span>
+          <span className="section-overline">Qook VQD의 투자 관점</span>
           <h1>
             저평가된 좋은 기업을 찾고,
             <br />
@@ -70,16 +66,14 @@ export default function Methodology() {
         <section className="method-section">
           <div className="section-heading">
             <div>
-              <span className="section-overline">THREE PILLARS</span>
+              <span className="section-overline">투자 원칙</span>
               <h2>투자 판단의 세 가지 축</h2>
             </div>
           </div>
           <div className="method-grid">
             {groups.map((g, i) => (
               <article className="method-card" key={g.name}>
-                <span className="method-index">
-                  0{i + 1} / {g.name}
-                </span>
+                <span className="method-index">{g.name}</span>
                 <h3>{g.ko}</h3>
                 <p>{g.desc}</p>
                 <div className="method-total">
@@ -96,7 +90,7 @@ export default function Methodology() {
         <section className="method-section">
           <div className="section-heading">
             <div>
-              <span className="section-overline">SCORING FRAMEWORK</span>
+              <span className="section-overline">평가 체계</span>
               <h2>10가지 평가 항목</h2>
             </div>
             <span className="section-meta">합계 100점</span>
@@ -119,7 +113,7 @@ export default function Methodology() {
         <section className="method-section">
           <div className="section-heading">
             <div>
-              <span className="section-overline">HOW TO READ THE SCORE</span>
+              <span className="section-overline">점수 가이드</span>
               <h2>점수를 해석하는 방법</h2>
             </div>
           </div>

@@ -34,11 +34,8 @@ export default async function Detail({
             ← 전체 종목
           </Link>
           <Link className="text-link" href="/methodology">
-            평가 기준 알아보기 ↗
+            평가 기준 알아보기 →
           </Link>
-        </div>
-        <div className="eyebrow">
-          EQUITY RESEARCH <span>02 / STOCK DETAIL</span>
         </div>
         <section className="detail-hero">
           <div className="detail-hero-title">
@@ -112,14 +109,14 @@ export default async function Detail({
         <section className="detail-section">
           <div className="section-heading">
             <div>
-              <span className="section-overline">VALUATION BREAKDOWN</span>
+              <span className="section-overline">평가 내역</span>
               <h2>가치를 구성하는 10가지 기준</h2>
             </div>
             <span className="section-meta">{evaluated} / 10 항목 평가</span>
           </div>
           <div className="detail-layout">
             <aside className="coverage-panel">
-              <span className="section-overline">ASSESSMENT COVERAGE</span>
+              <span className="section-overline">평가 범위</span>
               <div className="coverage-value">
                 {score.possible}
                 <small>%</small>
@@ -133,7 +130,7 @@ export default async function Detail({
                 먼저 확인하세요.
               </p>
               <Link href="/methodology" className="text-link">
-                점수 해석 가이드 ↗
+                점수 해석 가이드 →
               </Link>
             </aside>
             <div>
