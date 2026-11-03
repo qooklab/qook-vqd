@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { stocks, calculate } from "@/lib/stocks";
-import ManualRefresh from "./manual-refresh";
 import StockTable, { type StockRow } from "./stock-table";
 import { Header, Footer } from "./site-chrome";
 export const dynamic = "force-dynamic";
@@ -27,68 +26,49 @@ export default async function Home() {
       <main id="main-content" className="dashboard">
         <section className="workspace-heading" aria-labelledby="page-title">
           <div>
-            <span className="workspace-kicker">Value · Quality · Dividend</span>
-            <h1 id="page-title">종목 리서치</h1>
-            <p>가격과 기업의 질, 주주환원을 같은 기준으로 살펴보세요.</p>
+            <div className="workspace-kicker">국내 주식 / Research</div>
+            <h1 id="page-title">
+              종목 리서치<span className="title-period">.</span>
+            </h1>
+            <p>가격, 기업의 질, 주주환원을 한 기준으로.</p>
           </div>
           <div className="workspace-context">
-            <span className="collection-status">
-              <span className="status-dot" aria-hidden="true" />
-              {collected > 0
-                ? "시세 " + collected + "종목 수집"
-                : "시세 수집 대기"}
-            </span>
             <span className="section-meta">
               {updated
                 ? "최근 수집 " +
                   new Date(updated).toLocaleString("ko-KR", {
                     timeZone: "Asia/Seoul",
                   })
-                : "수집된 데이터가 아직 없습니다"}
+                : "데이터 수집 대기"}
             </span>
-            <Link className="text-link" href="/methodology">
-              평가 기준 알아보기 →
+            <Link className="manage-link" href="/manage">
+              데이터 관리 <span aria-hidden="true">↗</span>
             </Link>
           </div>
         </section>
-        <section className="overview" aria-label="데이터 수집 현황">
-          <div className="stats">
-            <div className="stat-card">
-              <div className="stat-label">모니터링 종목</div>
-              <div className="stat-value">
-                {rows.length}
-                <small>종목</small>
-              </div>
-              <div className="stat-foot">국내 주요 상장기업</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">시세 수집 완료</div>
-              <div className="stat-value">
-                {collected}
-                <small>/ {rows.length}</small>
-              </div>
-              <div className="stat-foot">
-                <div className="stat-track">
-                  <div
-                    style={{
-                      width: `${rows.length ? (collected / rows.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-                <span>
-                  수집률 {Math.round((collected / rows.length) * 100)}%
-                </span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-label">전체 평가 완료</div>
-              <div className="stat-value">
-                {completed}
-                <small>종목</small>
-              </div>
-              <div className="stat-foot">10개 항목 · 100점 배점 기준</div>
-            </div>
+        <section className="summary-strip" aria-label="데이터 수집 현황">
+          <div>
+            <span>관찰 종목</span>
+            <strong>
+              {rows.length}
+              <small>종목</small>
+            </strong>
           </div>
+          <div>
+            <span>시세 수집</span>
+            <strong>
+              {collected}
+              <small>/ {rows.length}</small>
+            </strong>
+          </div>
+          <div>
+            <span>전체 평가 완료</span>
+            <strong>
+              {completed}
+              <small>종목</small>
+            </strong>
+          </div>
+          <span className="summary-note">확인된 데이터만 평가합니다.</span>
         </section>
         {!client && (
           <div className="notice" role="status">
@@ -111,7 +91,7 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <h2 id="universe-title">
-                모니터링 종목 <span className="count-badge">{rows.length}</span>
+                전체 종목 <span className="count-badge">{rows.length}</span>
               </h2>
             </div>
             <Link className="text-link" href="/methodology">
@@ -120,17 +100,6 @@ export default async function Home() {
           </div>
           <StockTable rows={rows as StockRow[]} />
         </section>
-        <details className="refresh-disclosure">
-          <summary>
-            <span>
-              <strong>데이터 수동 갱신</strong>
-            </span>
-            <span className="disclosure-hint">
-              관리자 도구 <b aria-hidden="true">＋</b>
-            </span>
-          </summary>
-          <ManualRefresh />
-        </details>
         <Footer />
       </main>
     </div>

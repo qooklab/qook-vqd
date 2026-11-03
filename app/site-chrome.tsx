@@ -8,11 +8,8 @@ export function Header() {
     <header className="topbar">
       <div className="topbar-inner">
         <Link className="brand" href="/" aria-label="Qook VQD 홈">
-          <span className="brand-mark" aria-hidden="true">
-            Q.
-          </span>
           <span>
-            Qook<span className="brand-accent">VQD</span>
+            qook<span className="brand-accent">VQD</span>
           </span>
         </Link>
         <nav aria-label="주 메뉴">
@@ -30,8 +27,14 @@ export function Header() {
           >
             평가 기준
           </Link>
+          <Link
+            href="/manage"
+            aria-current={path === "/manage" ? "page" : undefined}
+          >
+            데이터 관리
+          </Link>
         </nav>
-        <span className="market-tag">국내 주식</span>
+        <span className="market-tag">KOREA EQUITIES</span>
       </div>
     </header>
   );
