@@ -5,15 +5,34 @@ export async function findCorp(code:string){
  if(!map){
   const u=new URL('https://opendart.fss.or.kr/api/corpCode.xml');u.searchParams.set('crtfc_key',key);
   const response=await fetch(u,{cache:'no-store'});if(!response.ok)throw Error('DART corpCode HTTP '+response.status);
-  const b=Buffer.from(await response.arrayBuffer());let xml='';
-  for(let i=0;i<b.length-46;i++){if(b.readUInt32LE(i)!==0x02014b50)continue;
-   const n=b.readUInt16LE(i+28),name=b.subarray(i+46,i+46+n).toString();
-   if(!name.endsWith('.xml'))continue;
-   const p=b.readUInt32LE(i+42),start=p+30+b.readUInt16LE(p+26)+b.readUInt16LE(p+28);
-   const data=b.subarray(start,start+b.readUInt32LE(i+20));
-   xml=(b.readUInt16LE(i+10)===8?inflateRawSync(data):data).toString();break;
+  const b=Buffer.from(await response.arrayBuffer());
+  // DART returns XML with an error status instead of a ZIP for invalid keys / quota errors.
+  if(b.length<4||b.readUInt32LE(0)!==0x04034b50){
+   const body=b.toString('utf8');
+   const status=body.match(/<status>\s*([^<]+)\s*<\/status>/)?.[1];
+   const message=body.match(/<message>\s*([^<]+)\s*<\/message>/)?.[1];
+   if(status)throw Error('DART 기업목록 API '+status+': '+(message||'API 오류'));
+   throw Error('DART 기업목록 응답이 ZIP이 아닙니다 (HTTP '+response.status+', content-type '+(response.headers.get('content-type')||'unknown')+')');
   }
-  if(!xml)throw Error('DART 기업목록 ZIP 파싱 실패');
+  let xml='';
+  // Locate ZIP central directory entry. Compressed size in local header may be zero.
+  for(let i=0;i+46<=b.length;i++){
+   if(b.readUInt32LE(i)!==0x02014b50)continue;
+   const nameLen=b.readUInt16LE(i+28),extraLen=b.readUInt16LE(i+30),commentLen=b.readUInt16LE(i+32);
+   if(i+46+nameLen>b.length)break;
+   const name=b.subarray(i+46,i+46+nameLen).toString('utf8');
+   if(!name.toLowerCase().endsWith('.xml')){i+=45+nameLen+extraLen+commentLen;continue;}
+   const p=b.readUInt32LE(i+42);
+   if(p+30>b.length||b.readUInt32LE(p)!==0x04034b50)throw Error('DART ZIP 파일 헤더 손상');
+   const start=p+30+b.readUInt16LE(p+26)+b.readUInt16LE(p+28);
+   const size=b.readUInt32LE(i+20),method=b.readUInt16LE(i+10);
+   if(start+size>b.length)throw Error('DART ZIP 압축 데이터 손상');
+   const data=b.subarray(start,start+size);
+   if(method!==8&&method!==0)throw Error('DART ZIP 압축 방식 미지원: '+method);
+   xml=(method===8?inflateRawSync(data):data).toString('utf8');
+   break;
+  }
+  if(!xml)throw Error('DART ZIP 안에 기업목록 XML 파일이 없습니다');
   map=new Map();
   for(const x of xml.matchAll(/<list>([\s\S]*?)<\/list>/g)){
    const stock=x[1].match(/<stock_code>(\d{6})<\/stock_code>/)?.[1];
