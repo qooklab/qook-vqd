@@ -19,6 +19,9 @@ export default function ManualRefresh() {
   const [done, setDone] = useState(0);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [filter, setFilter] = useState("");
+  const [activeMode, setActiveMode] = useState<"price" | "financial" | null>(
+    null,
+  );
   const visible = stocks.filter(
     ([name, code]) =>
       name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -26,6 +29,7 @@ export default function ManualRefresh() {
   );
   async function run(mode: "price" | "financial" = "price") {
     if (!selected.length || !secret || running) return;
+    setActiveMode(mode);
     setRunning(true);
     setDone(0);
     setOutcomes([]);
@@ -194,28 +198,50 @@ export default function ManualRefresh() {
           disabled={running}
           onChange={(e) => setSecret(e.target.value)}
         />
-        <button
-          type="button"
-          onClick={() => run("price")}
-          disabled={running || selected.length === 0 || !secret}
-        >
-          {running ? "갱신 중…" : `선택한 ${selected.length}종목 갱신`}
-        </button>
-        <button
-          type="button"
-          onClick={() => run("financial")}
-          disabled={running || selected.length === 0 || !secret}
-        >
-          {running ? "처리 중…" : "선택 종목 DART 재무평가"}
-        </button>
       </div>
-      <p>
-        <small>
-          DART 재무평가는 7일간 캐시를 재사용하며 시세 API 호출 없이 이익
-          안정성·재무 건전성·성장률을 계산합니다. 평가할 수 없는 종목은 실패
-          사유를 표시합니다.
-        </small>
+      <p className="collection-selection">
+        선택한 종목 <strong>{selected.length}개</strong> · 인증키를 입력한 뒤
+        가져올 정보를 선택하세요.
       </p>
+      <div className="collection-actions">
+        <section
+          className="collection-action"
+          aria-labelledby="kis-action-title"
+        >
+          <span className="collection-source">한국투자증권 · KIS</span>
+          <h3 id="kis-action-title">시세 정보</h3>
+          <p>현재가·PER·PBR·거래량을 가져옵니다.</p>
+          <button
+            type="button"
+            onClick={() => run("price")}
+            disabled={running || selected.length === 0 || !secret}
+          >
+            {running && activeMode === "price"
+              ? "한투 시세 가져오는 중…"
+              : "한투 시세 가져오기"}
+          </button>
+        </section>
+        <section
+          className="collection-action"
+          aria-labelledby="dart-action-title"
+        >
+          <span className="collection-source">금융감독원 · OpenDART</span>
+          <h3 id="dart-action-title">재무 정보 · 평가</h3>
+          <p>
+            3개년 재무제표로 이익 안정성·재무 건전성·성장률을 평가합니다. 시세
+            수집 후 사용하며, 재무 결과는 7일간 재사용합니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => run("financial")}
+            disabled={running || selected.length === 0 || !secret}
+          >
+            {running && activeMode === "financial"
+              ? "DART 재무정보 가져오는 중…"
+              : "DART 재무정보 가져오기"}
+          </button>
+        </section>
+      </div>
       {(running || outcomes.length > 0) && (
         <div role="status" aria-live="polite">
           {running && <p>{activity}</p>}
@@ -230,7 +256,11 @@ export default function ManualRefresh() {
       )}
       {outcomes.some((x) => !x.ok) && (
         <div className="manual-errors">
-          <strong>오류 내역</strong>
+          <strong>
+            {activeMode === "financial"
+              ? "DART 재무정보 오류"
+              : "한투 시세 오류"}
+          </strong>
           {outcomes
             .filter((x) => !x.ok)
             .map((x) => (

@@ -303,7 +303,7 @@ function manualHarness(responses) {
     if (!node || typeof node !== "object") return null;
     if (
       node.type === "button" &&
-      node.props.children === "선택 종목 DART 재무평가"
+      node.props.children === "DART 재무정보 가져오기"
     )
       return node;
     for (const child of [node.props?.children].flat(Infinity)) {
