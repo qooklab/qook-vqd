@@ -29,16 +29,20 @@ export default function ManualRefresh(){
     for(let attempt=0;attempt<4;attempt++){
      try{
       const res=await fetch('/api/refresh',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+secret},body:JSON.stringify({code,mode}),cache:'no-store'});
-      const json=await res.json().catch(()=>({error:'서버 응답을 읽지 못했습니다'}));
+      const raw=await res.text();
+      let json:{error?:string;ok?:boolean}={};
+      try{json=JSON.parse(raw);}catch{
+       json={error:res.status===504||res.status===524?'서버 처리 시간 초과 (HTTP '+res.status+')':res.status>=500?'서버 오류 (HTTP '+res.status+'). Vercel Functions 로그 확인 필요':'JSON이 아닌 응답 (HTTP '+res.status+')'};
+      }
       const error=String(json.error||'요청 실패');
-      if(res.ok){outcome={code,name,ok:true};break;}
+      if(res.ok&&json.ok===true){outcome={code,name,ok:true};break;}
       if(isRateLimit(res.status,error)&&attempt<3){
        await sleep(2500*Math.pow(2,attempt));
        continue;
       }
       outcome={code,name,ok:false,error:isRateLimit(res.status,error)?error+' (자동 재시도 후 실패)':error};
       // Stop for invalid credentials or a persistent upstream server failure.
-      stop=res.status===401||res.status===503||error.includes('KIS token HTTP')||error.includes('KIS quote HTTP 500')&&!isRateLimit(res.status,error);
+      stop=res.status===401||res.status===503||res.status===504||error.includes('KIS token HTTP')||error.includes('KIS quote HTTP 500')&&!isRateLimit(res.status,error);
       break;
      }catch(e){
       outcome={code,name,ok:false,error:String(e)};
