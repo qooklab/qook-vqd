@@ -305,7 +305,7 @@ export default function ManualRefresh({list = stocks}: {list?: readonly (readonl
         <small>
           보안: CRON_SECRET은 이 화면에서만 사용하며 브라우저 저장소에 보관하지
           않습니다. 공용 PC에서는 사용하지 마세요. 이 기능은 선택한 종목만
-          갱신하며 국내 전체 상장종목 검색은 아직 지원하지 않습니다.
+          갱신합니다. 전체 시장 선별은 ‘전 종목 선별’ 화면에서 진행합니다.
         </small>
       </p>
     </section>

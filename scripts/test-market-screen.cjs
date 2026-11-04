@@ -57,6 +57,12 @@ test('lease blocks overlapping workers and failures remain provisional rather th
  }finally{if(oldKey===undefined)delete process.env.KIS_APP_KEY;else process.env.KIS_APP_KEY=oldKey;if(oldSecret===undefined)delete process.env.KIS_APP_SECRET;else process.env.KIS_APP_SECRET=oldSecret;}
 });
 test('the previously published universe stays available while a new scan is running',async()=>{const j=job([listing()]);j.published={runId:'old',completedAt:'2026-01-01T00:00:00Z',selected:[quote()]};const h=service(j);const result=await h.code.watchlist();assert.equal(result.published,true);assert.equal(result.stocks[0][1],'111111');});
+test('staggered parallel quotes keep all results and a bounded number of in-flight requests',async()=>{
+ const oldKey=process.env.KIS_APP_KEY,oldSecret=process.env.KIS_APP_SECRET;process.env.KIS_APP_KEY='test';process.env.KIS_APP_SECRET='test';
+ let active=0,max=0;const starts=[];
+ try{const h=service(job(Array.from({length:6},(_,i)=>listing(String(100000+i)))),async()=>{starts.push(Date.now());active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,350));active--;return {price:100,per:5,pbr:.5,volume:100};});await h.code.processMarketBatch();assert.equal(h.get().quotes.length,6);assert.equal(h.get().cursor,6);assert.equal(new Set(h.get().quotes.map(q=>q.code)).size,6);assert.ok(max>1&&max<=4);assert.ok(starts.every((t,i)=>i===0||t-starts[i-1]>=150));}
+ finally{if(oldKey===undefined)delete process.env.KIS_APP_KEY;else process.env.KIS_APP_KEY=oldKey;if(oldSecret===undefined)delete process.env.KIS_APP_SECRET;else process.env.KIS_APP_SECRET=oldSecret;}
+});
 test('new financial or unclassified issuers never receive an industrial debt-ratio score',async()=>{
  for(const industry of [true,null,false]) {
   const financial=load('lib/financial-score.ts',{'./db':{db:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null,error:null})})}),upsert:async()=>({error:null})})})},'./dart':{findCorp:async()=>'10000000',dartFinancialIndustry:async()=>industry,dartFinancials:async()=>[{sj_div:'IS',account_id:'dart_OperatingIncomeLoss',thstrm_amount:'100'},{sj_div:'BS',account_id:'ifrs-full_Equity',thstrm_amount:'1000'},{sj_div:'BS',account_id:'ifrs-full_Liabilities',thstrm_amount:'500'}]}});

@@ -5,7 +5,7 @@ import {downloadMarket} from "./market-master";
 import {decodeJob, eligibleListings, publicScreen, selectCandidates, type ScreenJob} from "./market-model";
 import {stocks} from "./stocks";
 const JOB_CODE = "__market_screen_v1";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 40;
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 async function readStored() {
   const client=db();if(!client)throw Error("Supabase 설정 누락");
@@ -48,12 +48,13 @@ export async function processMarketBatch() {
   if(!lock.data)return;
   const eligible=eligibleListings(working);
   if(!process.env.KIS_APP_KEY||!process.env.KIS_APP_SECRET){working.status="partial";working.message="KIS 환경변수를 확인해 주세요.";}
-  else for(let i=0;i<PAGE_SIZE&&Date.now()-started<32000;i++) {
+  else for(let processed=0;processed<PAGE_SIZE&&Date.now()-started<32000;) {
     const initial=working.cursor<eligible.length;
-    const retry=initial?null:working.failures.find(f=>f.attempts<2);
-    const stock=initial?eligible[working.cursor]:retry?eligible.find(s=>s.code===retry.code):null;
-    if(!stock)break;
-    if(i>0)await sleep(750);
+    const batch=initial?eligible.slice(working.cursor,working.cursor+4):working.failures.filter(f=>f.attempts<2).slice(0,4).flatMap(f=>{const stock=eligible.find(s=>s.code===f.code);return stock?[stock]:[];});
+    if(!batch.length)break;
+    // Stagger starts by 250ms and cap concurrency at four; one leased worker owns the key's screening traffic.
+    await Promise.all(batch.map(async(stock,index)=>{
+      if(index)await sleep(index*250);
     working.attempted++;
     try {
       const result=await quote(stock.code);
@@ -69,9 +70,12 @@ export async function processMarketBatch() {
       if(error instanceof KisApiError && (error.stage==="token"||[401,403].includes(error.status))){working.status="partial";working.message="KIS 인증 상태 확인 필요 · "+message;}
       else if(/EGW00201|초당|too many|429/i.test(message)){working.cooldownUntil=new Date(Date.now()+30000).toISOString();working.message="호출 제한으로 30초 대기 후 이어서 수집합니다.";}
     }
-    if(initial)working.cursor++;
+    }));
+    if(initial)working.cursor+=batch.length;
+    processed+=batch.length;
     if(working.status==="partial"||working.cooldownUntil)break;
   }
+
   if(working.status==="running"&&working.cursor>=eligible.length&&!working.failures.some(f=>f.attempts<2)){
     working.status=working.failures.length?"partial":"complete";
     working.completedAt=new Date().toISOString();
