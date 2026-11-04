@@ -46,7 +46,7 @@ export default async function Home() {
           <div className="hero-composition">
             <div className="hero-copy">
               <span className="hero-index">01 — THE RESEARCH</span>
-              <h1 id="page-title">가격 너머의<br />가치를 보다<span className="title-period">.</span></h1>
+              <h1 id="page-title"><span className="headline-line"><span>가격 너머의</span></span><span className="headline-line"><span>가치를 보다<span className="title-period">.</span></span></span></h1>
               <p>가격, 기업의 질, 주주환원.<br />좋은 기업을 알아보는 세 가지 관점.</p>
               <a className="hero-cta" href="#universe-title">종목 살펴보기 <span aria-hidden="true">↘</span></a>
             </div>
@@ -70,7 +70,7 @@ export default async function Home() {
                 <text x="342" y="289" textAnchor="middle">DIVIDEND</text>
                 <text x="230" y="270" textAnchor="middle" className="dial-wordmark">vqd.</text>
               </svg>
-              <div className="instrument-caption"><span>THREE LENSES. ONE STANDARD.</span><span>↗</span></div>
+              <div className="instrument-caption"><span className="instrument-hint">MOVE TO EXPLORE / 세 가지 관점</span><span>↗</span></div>
             </div>
           </div>
           <div className="hero-baseline">

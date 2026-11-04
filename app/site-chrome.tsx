@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ExperienceControls } from "./site-experience";
 
 export function Header() {
   const path = usePathname();
@@ -34,7 +35,7 @@ export function Header() {
             데이터 관리
           </Link>
         </nav>
-        <span className="market-tag">KOREA EQUITIES</span>
+        <ExperienceControls />
       </div>
     </header>
   );
@@ -49,3 +50,4 @@ export function Footer() {
     </footer>
   );
 }
+

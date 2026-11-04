@@ -1,5 +1,6 @@
 import "./style.css";
 import type { ReactNode } from "react";
+import SiteExperience from "./site-experience";
 export const metadata = {
   title: "Qook VQD | 가치에 집중하는 투자 리서치",
   description:
@@ -12,8 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main-content">
           본문으로 건너뛰기
         </a>
-        {children}
+        <SiteExperience>{children}</SiteExperience>
       </body>
     </html>
   );
 }
+
