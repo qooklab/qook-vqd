@@ -3,7 +3,10 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { stocks, criteria, calculate } from "@/lib/stocks";
 import { Header, Footer } from "../../site-chrome";
+import { readResearch, updateResearch } from "@/lib/research";
+import { deriveResearch, researchFresh } from "@/lib/research-model";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 const money = (value: unknown) =>
   value == null ? "—" : Number(value).toLocaleString("ko-KR") + " 원";
 export default async function Detail({
@@ -22,7 +25,17 @@ export default async function Detail({
         .eq("code", code)
         .maybeSingle()
     : null;
-  const raw = response?.data || {};
+  let researchError = "";
+  let snapshot = await readResearch(code).catch((error: unknown) => {
+    researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
+    return null;
+  });
+  if (response?.data && !researchError && !researchFresh(snapshot)) {
+    try { snapshot = await updateResearch(code); }
+    catch (error) { researchError = error instanceof Error ? error.message : "추가 평가 조회 실패"; }
+  }
+  const derived = deriveResearch({...response?.data, code}, snapshot);
+  const raw = {...response?.data, ...derived.fields};
   const score = calculate(raw);
   const evaluated = score.vals.filter((v) => v != null).length;
   return (
@@ -61,6 +74,7 @@ export default async function Detail({
             <span>현재 시세와 평가 데이터를 표시할 수 없습니다.</span>
           </div>
         )}
+        {researchError && <div className="notice" role="status"><strong>추가 평가 확인 필요</strong><span>{researchError}</span></div>}
         <div className="stats detail-stats">
           <div className="stat-card">
             <div className="stat-label">
@@ -96,13 +110,13 @@ export default async function Detail({
           </div>
           <div className="stat-card">
             <div className="stat-label">
-              적정매수가 <span>FAIR ENTRY</span>
+              모형 매수기준 <span>MODEL ENTRY</span>
             </div>
             <div className="stat-value detail-value">
               {raw.buy_price != null ? money(raw.buy_price) : "미산정"}
             </div>
             <div className="stat-foot">
-              검증 가능한 산정 근거가 있는 경우 표시
+              자체 모형 추정가의 80% · 확정 적정가 아님
             </div>
           </div>
         </div>
@@ -153,7 +167,7 @@ export default async function Detail({
                           <span className="criterion-index">
                             {String(i + 1).padStart(2, "0")}
                           </span>
-                          {label}
+                          {label}{i === 9 && <small> · 수익성 대리지표</small>}
                         </th>
                         <td>
                           {max}
@@ -205,6 +219,20 @@ export default async function Detail({
             </div>
           </div>
         </section>
+        <section className="research-evidence" aria-labelledby="evidence-title">
+          <div className="section-heading"><h2 id="evidence-title">산정 근거와 데이터 출처</h2><span className="section-meta">{snapshot ? `${snapshot.year}년 사업보고서 기준` : "추가 공시 수집 대기"}</span></div>
+          <p>시세·PER·PBR은 KIS 수집값입니다. 배당과 소각은 완료 사업연도 실적이며, 올해 예상치나 실시간 공시를 뜻하지 않습니다.</p>
+          <div className="evidence-grid">{criteria.map(([label], i) => <details key={label}>
+            <summary>{String(i + 1).padStart(2, "0")} · {label} <span>{score.vals[i] === null ? "미평가 사유" : "계산 근거"}</span></summary>
+            <p>{derived.evidence[i]}</p>
+          </details>)}</div>
+          {snapshot && <>
+            <p>재무·배당 확인: {new Date(snapshot.checkedAt).toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})} · 정상 결과 7일 재사용{!researchFresh(snapshot) ? " · 갱신 지연으로 이전 자료 표시" : ""}</p>
+            <div className="evidence-sources">{[...new Set([...snapshot.dividends.map(d => d.receipt), ...snapshot.fundamentals.map(f => f.receipt), snapshot.retirementReceipt, snapshot.shareReceipt])].filter((r): r is string => typeof r === "string" && /^\d{14}$/.test(r)).map(r => <a key={r} href={`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${r}`} target="_blank" rel="noreferrer">DART 공시 {r} ↗</a>)}</div>
+            {snapshot.errors.length > 0 && <div className="notice"><strong>일부 자료 미확인</strong><span>{snapshot.errors.join(" / ")}</span></div>}
+          </>}
+          <Link className="text-link" href="/methodology">전체 계산 기준 보기 →</Link>
+        </section>
         <div className="detail-updated">
           최근 수집 ·{" "}
           {raw.updated_at
@@ -218,3 +246,4 @@ export default async function Detail({
     </div>
   );
 }
+

@@ -21,7 +21,7 @@ const cols: { key: Key; label: string }[] = [
   { key: "per", label: "PER" },
   { key: "pbr", label: "PBR" },
   { key: "assessed", label: "확인 점수" },
-  { key: "buy_price", label: "적정매수가" },
+  { key: "buy_price", label: "모형 매수기준" },
   { key: "updated_at", label: "최근 수집일" },
 ];
 const scopes = [
@@ -345,7 +345,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                       {r.price != null ? fmt(r.price) + " 원" : "미수집"}
                     </strong>
                     <span>
-                      적정매수가{" "}
+                      모형 매수기준{" "}
                       {r.buy_price != null
                         ? fmt(r.buy_price) + " 원"
                         : "미산정"}
@@ -382,3 +382,4 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
     </>
   );
 }
+

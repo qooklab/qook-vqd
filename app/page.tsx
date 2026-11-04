@@ -3,14 +3,31 @@ import { db } from "@/lib/db";
 import { stocks, calculate } from "@/lib/stocks";
 import StockTable, { type StockRow } from "./stock-table";
 import { Header, Footer } from "./site-chrome";
+import { after } from "next/server";
+import { readResearchMap, updateResearch } from "@/lib/research";
+import { deriveResearch, researchFresh } from "@/lib/research-model";
+import ResearchProgress from "./research-progress";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 export default async function Home() {
   const client = db();
   const result = client ? await client.from("stock_latest").select("*") : null;
+  let researchError = "";
+  const research = await readResearchMap().catch((error: unknown) => {
+    researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
+    return new Map();
+  });
+  const pending = (result?.data || []).filter(r => !researchFresh(research.get(r.code) || null));
+  if (client && !researchError && process.env.DART_API_KEY && pending.length) {
+    after(async () => {
+      await Promise.allSettled(pending.slice(0, 3).map(r => updateResearch(r.code)));
+    });
+  }
   const rows = stocks
     .map(([name, code]) => {
       const raw = result?.data?.find((x) => x.code === code) || {};
-      return { name, code, ...raw, ...calculate(raw) };
+      const enriched = {...raw, ...deriveResearch({...raw, code}, research.get(code) || null).fields};
+      return { name, code, ...enriched, ...calculate(enriched) };
     })
     .sort((a, b) => b.assessed - a.assessed);
   const collected = rows.filter((r) => r.price != null).length;
@@ -85,6 +102,8 @@ export default async function Home() {
           </div>
           <span className="summary-note">확인된 데이터만 평가합니다.</span>
         </section>
+        {pending.length > 0 && !researchError && process.env.DART_API_KEY && <ResearchProgress remaining={pending.length} />}
+        {researchError && <div className="notice" role="status"><strong>평가 근거 확인 필요</strong><span>{researchError}</span></div>}
         {!client && (
           <div className="notice" role="status">
             <strong>데이터 연결 대기</strong>
@@ -120,3 +139,4 @@ export default async function Home() {
     </div>
   );
 }
+

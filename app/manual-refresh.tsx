@@ -64,7 +64,7 @@ export default function ManualRefresh() {
                 "content-type": "application/json",
                 authorization: "Bearer " + secret,
               },
-              body: JSON.stringify({ code, mode }),
+              body: JSON.stringify({ code, mode: mode === "financial" ? "research" : mode }),
               cache: "no-store",
             });
             const raw = await res.text();
@@ -243,11 +243,12 @@ export default function ManualRefresh() {
           aria-labelledby="dart-action-title"
         >
           <span className="collection-source">금융감독원 · OpenDART</span>
-          <h3 id="dart-action-title">재무 정보 · 평가</h3>
+          <h3 id="dart-action-title">배당·소각·재무 통합 평가</h3>
           <p>
-            3개년 연결 재무제표(자료가 없으면 별도 재무제표)로 이익 안정성·재무
-            건전성·성장률을 평가합니다. 시세 수집 후 사용하며, 재무 결과는 7일간
-            재사용합니다.
+            5년 배당 이력, 실제 자사주 소각, 3년 재무·수익성을 확인합니다.
+            안전마진·모형 매수기준은 현재 시세와 PER·PBR로 재계산합니다.
+            정상 공시 결과는 7일, 일부 조회 실패 결과는 15분간 재사용합니다.
+            상세 화면에서도 자동 수집됩니다.
           </p>
           <button
             type="button"
@@ -310,3 +311,4 @@ export default function ManualRefresh() {
     </section>
   );
 }
+

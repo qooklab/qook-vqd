@@ -3,7 +3,7 @@ import { isTimeoutError, UpstreamTimeoutError } from "./request-timeout";
 import { findCorp, dartFinancials } from "./dart";
 import { DartApiError, isDartNoData, dartCacheError } from "./dart-errors";
 type Row = Record<string, string>;
-const financials = new Set([
+export const financials = new Set([
   "105560",
   "055550",
   "086790",
@@ -50,6 +50,7 @@ export type FinancialScoreResult = {
   balance_score?: number;
   growth_score?: number;
   note: string;
+  fundamentals?: { year: number; roe: number | null; receipt: string | null }[];
 };
 const hasScores = (value: Record<string, unknown>) =>
   ["profit_score", "balance_score", "growth_score"].some(
@@ -162,6 +163,12 @@ export async function financialScores(
   );
   const result: FinancialScoreResult = {
     note: `DART ${division === "CFS" ? "연결" : "별도"} 사업보고서 ${y - 2}–${y}년 기준`,
+    fundamentals: years.map((rows, i) => {
+      const income = metric(rows, ["ifrs-full_ProfitLoss", "ifrs_ProfitLoss"], ["당기순이익", "당기순이익(손실)"], "IS") ?? metric(rows, ["ifrs-full_ProfitLoss", "ifrs_ProfitLoss"], ["당기순이익", "당기순이익(손실)"], "CIS");
+      const equity = metric(rows, ["ifrs-full_Equity", "ifrs_Equity"], ["자본총계"], "BS");
+      const previous = metric(rows.map(r => ({...r, thstrm_amount: r.frmtrm_amount})), ["ifrs-full_Equity", "ifrs_Equity"], ["자본총계"], "BS");
+      return {year: y - 2 + i, roe: income !== null && equity !== null && previous !== null && equity > 0 && previous > 0 ? income / ((equity + previous) / 2) * 100 : null, receipt: rows.find(r => /^\d{14}$/.test(r.rcept_no || ""))?.rcept_no || null};
+    }),
   };
   if (profits.every((x) => x !== null)) {
     const positive = profits.filter((x) => x !== null && x > 0).length;
@@ -195,7 +202,7 @@ export async function financialScores(
     }
   } else result.note += " · 금융업 재무 건전성은 미평가";
   if (!hasScores(result))
-    return { note: "DART 재무제표 수신, 점수 계산에 필요한 계정과목 누락" };
+    return { ...result, note: result.note + " · 점수 계산에 필요한 계정과목 누락" };
   const { error: saveError } = await client.from("dart_financial_cache").upsert(
     {
       code,
@@ -210,3 +217,4 @@ export async function financialScores(
   if (saveError) throw dartCacheError("DART 평가 캐시 저장", saveError);
   return result;
 }
+

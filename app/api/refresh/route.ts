@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     );
   const body = await req.json().catch(() => null);
   const code = body?.code;
-  const financialOnly = body?.mode === "financial";
+  const financialOnly = body?.mode === "financial" || body?.mode === "research";
   if (typeof code !== "string" || !/^\d{6}$/.test(code))
     return NextResponse.json(
       { error: "올바른 6자리 종목코드를 입력하세요" },
@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
       { status: 503 },
     );
   try {
+    if (body?.mode === "research") {
+      const {updateResearch} = await import("@/lib/research");
+      const snapshot = await updateResearch(code, body?.force === true);
+      return NextResponse.json({ok: true, code, detail: `${snapshot.year}년 기준 · 배당 5년·실제 소각·3년 수익성 평가 ${snapshot.errors.length ? "· 일부 자료 미확인: " + snapshot.errors.join(" / ") : "완료"}`, checkedAt: snapshot.checkedAt}, {headers: {"Cache-Control": "no-store"}});
+    }
     if (financialOnly) {
       const { data: existing, error: readError } = await client
         .from("stock_latest")
@@ -146,3 +151,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

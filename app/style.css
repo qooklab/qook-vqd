@@ -2224,6 +2224,16 @@ button:active:not(:disabled) {
   font-weight: 600;
 }
 
+.research-evidence { border-top: 1px solid var(--ink); margin-top: 36px; padding-top: 28px; }
+.research-evidence > p { font-size: 12px; line-height: 1.9; }
+.evidence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin: 20px 0; }
+.evidence-grid details { border-bottom: 1px solid var(--line); }
+.evidence-grid summary { cursor: pointer; padding: 16px 0; min-height: 48px; font-size: 13px; }
+.evidence-grid summary span { font-size: 10px; color: var(--muted); margin-left: 10px; }
+.evidence-grid p { font-size: 12px; line-height: 1.9; padding-bottom: 12px; overflow-wrap: anywhere; }
+.evidence-sources { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 24px; }
+.evidence-sources a { min-height: 44px; display: inline-flex; align-items: center; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+@media(max-width: 600px) { .evidence-grid { grid-template-columns: 1fr; } }
 /* Editorial research system: paper, ink, signal red. */
 :root {
   --bg: #f4f3ef; --surface: #f4f3ef; --ink: #191919; --muted: #62615c;
@@ -2377,3 +2387,5 @@ button:active:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+

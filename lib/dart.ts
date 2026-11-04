@@ -171,3 +171,29 @@ export async function dartFinancials(
   if (j.list.length === 0) throw new DartApiError(stage, "013");
   return j.list as Record<string, string>[];
 }
+
+/** Annual-report endpoints; preserve missing-data, auth and quota errors. */
+export async function dartAnnual(endpoint: "alotMatter" | "tesstkAcqsDspsSttus" | "stockTotqySttus", corpCode: string, year: number) {
+  const key = process.env.DART_API_KEY?.trim();
+  if (!key) throw new DartApiError("DART 설정", "CONFIG");
+  const stage = `DART ${year}년 ${endpoint} 조회`;
+  const url = new URL(`https://opendart.fss.or.kr/api/${endpoint}.json`);
+  for (const [k, v] of Object.entries({crtfc_key: key, corp_code: corpCode, bsns_year: String(year), reprt_code: "11011"})) url.searchParams.set(k, v);
+  let data: unknown;
+  try {
+    data = await withUpstreamTimeout(stage, 10000, async signal => {
+      const response = await fetch(url, {cache: "no-store", signal});
+      if (!response.ok) throw new DartApiError(stage, "HTTP_" + response.status);
+      return response.json();
+    });
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new DartApiError(stage, "INVALID_RESPONSE");
+    throw error;
+  }
+  const result = data as {status?: string; list?: Record<string, string>[]};
+  if (!result || typeof result.status !== "string") throw new DartApiError(stage, "INVALID_RESPONSE");
+  if (result.status !== "000") throw new DartApiError(stage, result.status);
+  if (!Array.isArray(result.list) || !result.list.every(r => r && typeof r === "object" && !Array.isArray(r))) throw new DartApiError(stage, "INVALID_RESPONSE");
+  return result.list;
+}
+
