@@ -2,6 +2,7 @@ import { db } from "./db";
 import { dartAnnual, findCorp } from "./dart";
 import { financialScores } from "./financial-score";
 import { DartApiError, dartCacheError } from "./dart-errors";
+import { isTimeoutError } from "./request-timeout";
 import { decodeResearch, deriveResearch, dividendHistory, retirementData, researchFresh, type ResearchSnapshot, type DartRow } from "./research-model";
 
 const pending = new Map<string, Promise<ResearchSnapshot>>();
@@ -44,7 +45,14 @@ async function collect(code: string, force: boolean): Promise<ResearchSnapshot> 
   const errors: string[] = [];
   const issues: unknown[] = [];
   async function optional<T>(label: string, operation: () => Promise<T>): Promise<T | null> {
-    try { return await operation(); }
+    try {
+      try { return await operation(); }
+      catch (error) {
+        // A single bounded retry handles slow DART responses; key/quota/no-data errors are not retried.
+        if (!isTimeoutError(error)) throw error;
+        return await operation();
+      }
+    }
     catch (error) {
       issues.push(error);
       errors.push(label + ": " + (error instanceof Error ? error.message : "조회 실패"));

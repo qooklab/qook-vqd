@@ -14,6 +14,7 @@ function load(file, mocks = {}) {
 }
 const model = load('lib/research-model.ts');
 const dartErrors = load('lib/dart-errors.ts');
+const sharedTiming = load('lib/request-timeout.ts');
 function snapshot(patch = {}) {
   const year = new Date().getUTCFullYear() - 1;
   return {version: 1, year, checkedAt: new Date().toISOString(), basis: 'DART 연결 3년', dividends: Array.from({length: 5}, (_, i) => ({year: year-4+i, dps: 100+i*25, receipt: null})), retired: 200, issued: 9800, retirementReceipt: null, shareReceipt: null, fundamentals: [0,1,2].map(i => ({year:year-2+i,roe:12+i,receipt:null})), base: {profit_score:10,balance_score:8,growth_score:6}, errors: [], ...patch};
@@ -82,10 +83,10 @@ function serviceHarness({cached=null, annualError=null}={}) {
     update:data=>({eq:async()=>{writes.push({table,data});return {error:null};}})
   })};
   const research=load('lib/research.ts',{
-    './db':{db:()=>client},'./dart-errors':dartErrors,'./research-model':model,
+    './db':{db:()=>client},'./dart-errors':dartErrors,'./research-model':model,'./request-timeout':sharedTiming,
     './financial-score':{financialScores:async()=>({profit_score:10,balance_score:8,growth_score:6,note:'DART 연결',fundamentals:snapshot().fundamentals})},
     './dart':{findCorp:async()=> '00106641',dartAnnual:async(endpoint,corp,year)=>{
-      calls.push(endpoint); if(annualError) throw annualError;
+      calls.push(endpoint); if(annualError) {const error=typeof annualError==='function' ? annualError(endpoint,year) : annualError; if(error)throw error;}
       if(endpoint==='alotMatter')return [{se:'주당 현금배당금(원)',stock_knd:'보통주',thstrm:'100',frmtrm:'90',lwfr:'80'}];
       if(endpoint==='tesstkAcqsDspsSttus')return [{stock_knd:'보통주',acqs_mth1:'총계',change_qy_incnr:'200'}];
       return [{se:'보통주',istc_totqy:'9800'}];
@@ -113,10 +114,19 @@ test('quota errors do not persist a fake empty research result',async()=>{
     assert.equal(h.writes.length,0);
   } finally {if(old===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=old;}
 });
+test('a slow annual source retries once without treating the timeout as no dividend',async()=>{
+  const old=process.env.DART_API_KEY;process.env.DART_API_KEY='test';
+  const seen=new Set(); const timing=sharedTiming;
+  try {
+    const h=serviceHarness({annualError:(endpoint,year)=>{const key=endpoint+year;if(seen.has(key))return null;seen.add(key);return new timing.UpstreamTimeoutError('DART',10000);}});
+    const result=await h.research.updateResearch('000270');
+    assert.equal(h.calls.length,8);assert.deepEqual(result.errors,[]);assert.equal(result.dividends[4].dps,100);
+  } finally {if(old===undefined)delete process.env.DART_API_KEY;else process.env.DART_API_KEY=old;}
+});
 test('ROE uses annual net profit and average beginning/end total equity on a consistent basis',async()=>{
   const financial=load('lib/financial-score.ts',{
     './db':{db:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null,error:null})})}),upsert:async()=>({error:null})})})},
-    './dart-errors':dartErrors,'./request-timeout':load('lib/request-timeout.ts'),
+    './dart-errors':dartErrors,'./request-timeout':sharedTiming,
     './dart':{findCorp:async()=> '00106641',dartFinancials:async()=>[
       {sj_div:'IS',account_id:'dart_OperatingIncomeLoss',thstrm_amount:'100'},
       {sj_div:'IS',account_id:'ifrs-full_ProfitLoss',thstrm_amount:'150'},

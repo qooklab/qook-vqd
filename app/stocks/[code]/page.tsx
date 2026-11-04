@@ -227,7 +227,7 @@ export default async function Detail({
             <p>{derived.evidence[i]}</p>
           </details>)}</div>
           {snapshot && <>
-            <p>재무·배당 확인: {new Date(snapshot.checkedAt).toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})} · 정상 결과 7일 재사용{!researchFresh(snapshot) ? " · 갱신 지연으로 이전 자료 표시" : ""}</p>
+            <p>재무·배당 확인: {new Date(snapshot.checkedAt).toLocaleString("ko-KR", {timeZone: "Asia/Seoul"})} · {snapshot.errors.length ? "일부 조회 실패 · 15분 후 재확인" : "정상 결과 7일 재사용"}{!researchFresh(snapshot) ? " · 갱신 지연으로 이전 자료 표시" : ""}</p>
             <div className="evidence-sources">{[...new Set([...snapshot.dividends.map(d => d.receipt), ...snapshot.fundamentals.map(f => f.receipt), snapshot.retirementReceipt, snapshot.shareReceipt])].filter((r): r is string => typeof r === "string" && /^\d{14}$/.test(r)).map(r => <a key={r} href={`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${r}`} target="_blank" rel="noreferrer">DART 공시 {r} ↗</a>)}</div>
             {snapshot.errors.length > 0 && <div className="notice"><strong>일부 자료 미확인</strong><span>{snapshot.errors.join(" / ")}</span></div>}
           </>}
