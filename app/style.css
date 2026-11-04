@@ -2523,5 +2523,6 @@ button:active:not(:disabled) {
 }
 
 /* Navigation stays still: no wipe, page translation, or hero entrance replay. */
+html { scroll-behavior: auto; }
 .headline-line > span, .hero-index, .hero-copy > p, .hero-copy > .hero-cta,
 .value-instrument, .instrument-arc { animation: none; }
