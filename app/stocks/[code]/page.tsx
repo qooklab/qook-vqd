@@ -15,7 +15,8 @@ export default async function Detail({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const found = stocks.find((x) => x[1] === code);
+  let found: readonly [string,string] | undefined = stocks.find((x) => x[1] === code);
+  if (!found) { const {watchlist} = await import("@/lib/market-screen"); found = (await watchlist()).stocks.find(s => s[1] === code); }
   if (!found) notFound();
   const client = db();
   const response = client

@@ -5,7 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { InteractionSound } from "@/lib/interaction-sound";
 
 const routes = [
-  {href: "/", title: "Research", ko: "종목 리서치", caption: "30 companies. Three lenses.", no: "01"},
+  {href: "/screen", title: "Screen", ko: "전 종목 선별", caption: "Same rules. A wider universe.", no: "00"},
+  {href: "/", title: "Research", ko: "종목 리서치", caption: "Selected companies. Three lenses.", no: "01"},
   {href: "/methodology", title: "Method", ko: "평가 기준", caption: "The thinking behind the numbers.", no: "02"},
   {href: "/manage", title: "Data", ko: "데이터 관리", caption: "Keep your research up to date.", no: "03"},
 ];

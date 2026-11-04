@@ -1,29 +1,32 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { stocks, calculate } from "@/lib/stocks";
+import { calculate } from "@/lib/stocks";
 import StockTable, { type StockRow } from "./stock-table";
 import { Header, Footer } from "./site-chrome";
 import { after } from "next/server";
 import { readResearchMap, updateResearch } from "@/lib/research";
 import { deriveResearch, researchFresh } from "@/lib/research-model";
 import ResearchProgress from "./research-progress";
+import { watchlist } from "@/lib/market-screen";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 export default async function Home() {
+  const universe = await watchlist();
   const client = db();
-  const result = client ? await client.from("stock_latest").select("*") : null;
+  const result = client ? await client.from("stock_latest").select("*").in("code", universe.stocks.map(s => s[1])) : null;
   let researchError = "";
-  const research = await readResearchMap().catch((error: unknown) => {
+  const research = await readResearchMap(universe.stocks.map(s => s[1])).catch((error: unknown) => {
     researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
     return new Map();
   });
-  const pending = (result?.data || []).filter(r => !researchFresh(research.get(r.code) || null));
+  const tracked = new Set(universe.stocks.map(s => s[1]));
+  const pending = (result?.data || []).filter(r => tracked.has(r.code) && !researchFresh(research.get(r.code) || null));
   if (client && !researchError && process.env.DART_API_KEY && pending.length) {
     after(async () => {
       await Promise.allSettled(pending.slice(0, 3).map(r => updateResearch(r.code)));
     });
   }
-  const rows = stocks
+  const rows = universe.stocks
     .map(([name, code]) => {
       const raw = result?.data?.find((x) => x.code === code) || {};
       const enriched = {...raw, ...deriveResearch({...raw, code}, research.get(code) || null).fields};
@@ -48,7 +51,7 @@ export default async function Home() {
               <span className="hero-index">01 — THE RESEARCH</span>
               <h1 id="page-title"><span className="headline-line"><span>가격 너머의</span></span><span className="headline-line"><span>가치를 보다<span className="title-period">.</span></span></span></h1>
               <p>가격, 기업의 질, 주주환원.<br />좋은 기업을 알아보는 세 가지 관점.</p>
-              <a className="hero-cta" href="#universe-title">종목 살펴보기 <span aria-hidden="true">↘</span></a>
+              <Link className="hero-cta" href="/screen">전 종목 선별하기 <span aria-hidden="true">↗</span></Link>
             </div>
             <div className="value-instrument" aria-hidden="true">
               <div className="instrument-caption"><span>Q / VQD</span><span>RESEARCH INSTRUMENT — 001</span></div>
@@ -78,6 +81,7 @@ export default async function Home() {
             <span>{updated ? "최근 수집 " + new Date(updated).toLocaleString("ko-KR", {timeZone: "Asia/Seoul"}) : "데이터 수집 대기"}</span>
           </div>
         </section>
+        <div className="universe-context"><strong>{universe.published ? "코스피·코스닥 공통 기준으로 선별한 후보" : "현재는 기존 수동 관찰 목록입니다."}</strong><span>{universe.published ? "1차 가격 조건 선별 결과이며 아래 100점 상세 평가는 별도입니다." : "전 종목 선별을 마치기 전까지 기존 목록을 유지합니다. 전체 시장 상위 30개가 아닙니다."}</span><Link href="/screen">선별 기준·진행률 보기 ↗</Link></div>
         <section className="summary-strip" aria-label="데이터 수집 현황">
           <div>
             <span>관찰 종목</span>
@@ -125,7 +129,7 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <h2 id="universe-title">
-                전체 종목 <span className="count-badge">{rows.length}</span>
+                관찰 종목 <span className="count-badge">{rows.length}</span>
               </h2>
             </div>
             <Link className="text-link" href="/methodology">

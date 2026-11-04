@@ -16,7 +16,7 @@ type Outcome = {
 };
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
-export default function ManualRefresh() {
+export default function ManualRefresh({list = stocks}: {list?: readonly (readonly [string,string])[]} = {}) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [secret, setSecret] = useState("");
@@ -28,7 +28,7 @@ export default function ManualRefresh() {
   const [activeMode, setActiveMode] = useState<"price" | "financial" | null>(
     null,
   );
-  const visible = stocks.filter(
+  const visible = list.filter(
     ([name, code]) =>
       name.toLowerCase().includes(filter.toLowerCase()) ||
       code.includes(filter),
@@ -42,7 +42,7 @@ export default function ManualRefresh() {
     const results: Outcome[] = [];
     try {
       for (const code of selected) {
-        const name = stocks.find((x) => x[1] === code)?.[0] || code;
+        const name = list.find((x) => x[1] === code)?.[0] || code;
         // The KIS gateway enforces a per-second request limit shared across app keys.
         // Space requests out, even when a previous request failed.
         if (results.length > 0 && mode === "price") await sleep(1500);
@@ -165,7 +165,7 @@ export default function ManualRefresh() {
     <section className="manual-panel">
       <h2>선택 종목 수동 갱신</h2>
       <p>
-        국내 전체 시장에서 현재 등록된 30종목을 선택해 최신 시세를 가져옵니다.
+        국내 전체 시장에서 현재 관찰 목록의 종목을 선택해 최신 시세를 가져옵니다.
         종목은 1.5초 간격으로 조회하고 호출 제한과 일시적인 시간 초과는 간격을
         두고 자동 재시도합니다. 진행률을 표시합니다.
       </p>
@@ -179,10 +179,10 @@ export default function ManualRefresh() {
         />
         <button
           type="button"
-          onClick={() => setSelected(stocks.map((x) => x[1]))}
+          onClick={() => setSelected(list.map((x) => x[1]))}
           disabled={running}
         >
-          30종목 전체 선택
+          {list.length}종목 전체 선택
         </button>
         <button
           type="button"

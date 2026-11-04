@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Header, Footer } from "../site-chrome";
 import ManualRefresh from "../manual-refresh";
+import {watchlist} from "@/lib/market-screen";
+export const dynamic = "force-dynamic";
 export const metadata = { title: "데이터 관리 | Qook VQD" };
-export default function Manage() {
+export default async function Manage() {
+  const universe = await watchlist();
   return (
     <div className="site-shell">
       <Header />
@@ -20,10 +23,11 @@ export default function Manage() {
           </Link>
         </section>
         <div className="management-surface">
-          <ManualRefresh />
+          <ManualRefresh list={universe.stocks} />
         </div>
         <Footer />
       </main>
     </div>
   );
 }
+

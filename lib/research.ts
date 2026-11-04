@@ -13,10 +13,13 @@ export async function readResearch(code: string) {
   if (result.error) throw dartCacheError("DART 평가 근거 조회", result.error);
   return decodeResearch(result.data?.note);
 }
-export async function readResearchMap(): Promise<Map<string, ResearchSnapshot>> {
+export async function readResearchMap(codes?: string[]): Promise<Map<string, ResearchSnapshot>> {
   const client = db();
   if (!client) return new Map();
-  const result = await client.from("dart_financial_cache").select("code,note");
+  if (codes && !codes.length) return new Map();
+  let query = client.from("dart_financial_cache").select("code,note");
+  if (codes) query = query.in("code", codes);
+  const result = await query;
   if (result.error) throw dartCacheError("DART 평가 근거 조회", result.error);
   return new Map((result.data || []).flatMap(row => {
     const snapshot = decodeResearch(row.note);

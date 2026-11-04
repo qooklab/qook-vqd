@@ -27,6 +27,16 @@ export async function findCorp(code: string) {
       return lookup.data.corp_code;
   }
   if (!key) throw new DartApiError("DART 설정", "CONFIG");
+  if (!map && client) {
+    const directory = await client.from("dart_financial_cache").select("note,checked_at").eq("code", "__dart_directory_v1").maybeSingle();
+    if (directory.error) throw dartCacheError("DART 전체 기업코드 캐시 조회", directory.error);
+    if (directory.data?.note && Date.now() - Date.parse(directory.data.checked_at) < 30 * 86400000) {
+      try {
+        const cached = JSON.parse(directory.data.note);
+        if (cached.kind === "corp-directory-v1" && Array.isArray(cached.entries) && cached.entries.length >= 100 && cached.entries.every((r: unknown) => Array.isArray(r) && /^[0-9A-Z]{6}$/.test(r[0]) && /^\d{8}$/.test(r[1]))) map = new Map(cached.entries);
+      } catch { /* An old cache format is replaced below. */ }
+    }
+  }
   if (!map) {
     const u = new URL("https://opendart.fss.or.kr/api/corpCode.xml");
     u.searchParams.set("crtfc_key", key);
@@ -79,7 +89,7 @@ export async function findCorp(code: string) {
     if (!xml) throw Error("DART ZIP 안에 기업목록 XML 파일이 없습니다");
     const nextMap = new Map<string, string>();
     for (const x of xml.matchAll(/<list>([\s\S]*?)<\/list>/g)) {
-      const stock = x[1].match(/<stock_code>\s*(\d{6})\s*<\/stock_code>/)?.[1];
+      const stock = x[1].match(/<stock_code>\s*([0-9A-Z]{6})\s*<\/stock_code>/)?.[1];
       const corp = x[1].match(/<corp_code>\s*(\d{8})\s*<\/corp_code>/)?.[1];
       if (stock && corp) nextMap.set(stock, corp);
     }
@@ -88,6 +98,8 @@ export async function findCorp(code: string) {
     map = nextMap;
     if (client) {
       const checked_at = new Date().toISOString();
+      const directory = await client.from("dart_financial_cache").upsert({code:"__dart_directory_v1",note:JSON.stringify({kind:"corp-directory-v1",entries:[...nextMap]}),checked_at},{onConflict:"code"});
+      if(directory.error)throw dartCacheError("DART 전체 기업코드 캐시 저장",directory.error);
       const entries = stocks.flatMap(([, ticker]) => {
         const corp_code = nextMap.get(ticker === "005935" ? "005930" : ticker);
         return corp_code ? [{ stock_code: ticker, corp_code, checked_at }] : [];
@@ -195,5 +207,14 @@ export async function dartAnnual(endpoint: "alotMatter" | "tesstkAcqsDspsSttus" 
   if (result.status !== "000") throw new DartApiError(stage, result.status);
   if (!Array.isArray(result.list) || !result.list.every(r => r && typeof r === "object" && !Array.isArray(r))) throw new DartApiError(stage, "INVALID_RESPONSE");
   return result.list;
+}
+
+export async function dartFinancialIndustry(corpCode: string): Promise<boolean | null> {
+  const key = process.env.DART_API_KEY?.trim();
+  if(!key)throw new DartApiError("DART 설정","CONFIG");
+  const url=new URL("https://opendart.fss.or.kr/api/company.json");url.searchParams.set("crtfc_key",key);url.searchParams.set("corp_code",corpCode);
+  const data=await withUpstreamTimeout("DART 업종 확인",8000,async signal=>{const response=await fetch(url,{cache:"no-store",signal});if(!response.ok)throw new DartApiError("DART 업종 확인","HTTP_"+response.status);return response.json();});
+  if(data?.status!=="000")throw new DartApiError("DART 업종 확인",typeof data?.status==="string"?data.status:"INVALID_RESPONSE");
+  return typeof data.induty_code==="string"&&/^\d{2,6}$/.test(data.induty_code)?/^(64|65|66)/.test(data.induty_code):null;
 }
 

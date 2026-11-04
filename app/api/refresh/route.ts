@@ -17,12 +17,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const code = body?.code;
   const financialOnly = body?.mode === "financial" || body?.mode === "research";
-  if (typeof code !== "string" || !/^\d{6}$/.test(code))
+  if (typeof code !== "string" || !/^[0-9A-Z]{6}$/.test(code))
     return NextResponse.json(
-      { error: "올바른 6자리 종목코드를 입력하세요" },
+      { error: "올바른 6자리 영문·숫자 종목코드를 입력하세요" },
       { status: 400 },
     );
-  const found = stocks.find((x) => x[1] === code);
+  let found: readonly [string,string] | undefined = stocks.find((x) => x[1] === code);
+  if (!found) {
+    const {watchlist} = await import("@/lib/market-screen");
+    found = (await watchlist()).stocks.find(s => s[1] === code);
+  }
   if (!found)
     return NextResponse.json(
       { error: "등록되지 않은 종목입니다" },

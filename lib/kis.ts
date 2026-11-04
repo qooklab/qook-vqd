@@ -16,7 +16,7 @@ async function apiError(r:Response,stage:'token'|'quote'):Promise<never>{
  throw new KisApiError(stage,r.status,detail.slice(0,180));
 }
 async function issueToken(key:string,secret:string){
- const r=await fetch(`${BASE}/oauth2/tokenP`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey:key,appsecret:secret}),cache:'no-store'});
+ const r=await fetch(`${BASE}/oauth2/tokenP`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grant_type:'client_credentials',appkey:key,appsecret:secret}),cache:'no-store',signal:AbortSignal.timeout(8000)});
  if(!r.ok)return apiError(r,'token');
  const j=await r.json();
  if(!j.access_token)throw Error('KIS token response missing access_token');
@@ -71,10 +71,11 @@ export async function quote(code:string){
  const u=new URL(`${BASE}/uapi/domestic-stock/v1/quotations/inquire-price`);
  u.searchParams.set('FID_COND_MRKT_DIV_CODE','J');
  u.searchParams.set('FID_INPUT_ISCD',code);
- const r=await fetch(u,{headers:{authorization:`Bearer ${await accessToken()}`,appkey:key,appsecret:secret,tr_id:'FHKST01010100','content-type':'application/json'},cache:'no-store'});
+ const r=await fetch(u,{headers:{authorization:`Bearer ${await accessToken()}`,appkey:key,appsecret:secret,tr_id:'FHKST01010100','content-type':'application/json'},cache:'no-store',signal:AbortSignal.timeout(8000)});
  if(!r.ok)return apiError(r,'quote');
  const j=await r.json();
  if(j.rt_cd!=='0'||!j.output)throw Error(`KIS quote response: ${String(j.msg_cd||'')}: ${String(j.msg1||'unknown error').slice(0,150)}`);
  const x=j.output;
  return {price:Number(x.stck_prpr)||null,per:Number(x.per)||null,pbr:Number(x.pbr)||null,volume:Number(x.acml_vol)||null};
 }
+

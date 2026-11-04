@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { isTimeoutError, UpstreamTimeoutError } from "./request-timeout";
-import { findCorp, dartFinancials } from "./dart";
+import { findCorp, dartFinancials, dartFinancialIndustry } from "./dart";
+import { stocks } from "./stocks";
 import { DartApiError, isDartNoData, dartCacheError } from "./dart-errors";
 type Row = Record<string, string>;
 export const financials = new Set([
@@ -97,6 +98,11 @@ export async function financialScores(
     };
   const corp = await findCorp(code);
   if (!corp) return { note: "DART 기업 고유번호 미확인" };
+  let financialIndustry: boolean | null = financials.has(code) ? true : stocks.some(s => s[1] === code) ? false : null;
+  if(financialIndustry === null) {
+    try { financialIndustry = await dartFinancialIndustry(corp); }
+    catch(error) { if(error instanceof DartApiError && error.stopBatch)throw error; }
+  }
   const fetchYears = (division: "CFS" | "OFS") =>
     Promise.all(
       [y - 2, y - 1, y].map(async (year): Promise<YearResult> => {
@@ -181,7 +187,7 @@ export async function financialScores(
         g >= 0.15 ? 10 : g >= 0.1 ? 8 : g >= 0.05 ? 6 : g >= 0 ? 4 : 2;
     } else if (end <= 0) result.growth_score = 0;
   }
-  if (!financials.has(code)) {
+  if (financialIndustry === false) {
     const rows = years[2],
       debt = metric(
         rows,
@@ -200,7 +206,7 @@ export async function financialScores(
       result.balance_score =
         r <= 0.5 ? 10 : r <= 1 ? 8 : r <= 1.5 ? 6 : r <= 2 ? 4 : r <= 3 ? 2 : 0;
     }
-  } else result.note += " · 금융업 재무 건전성은 미평가";
+  } else result.note += financialIndustry === true ? " · 금융업 재무 건전성은 미평가" : " · 업종 분류 미확인으로 재무 건전성 미평가";
   if (!hasScores(result))
     return { ...result, note: result.note + " · 점수 계산에 필요한 계정과목 누락" };
   const { error: saveError } = await client.from("dart_financial_cache").upsert(

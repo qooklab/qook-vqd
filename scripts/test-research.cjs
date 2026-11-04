@@ -126,7 +126,7 @@ test('a slow annual source retries once without treating the timeout as no divid
 test('ROE uses annual net profit and average beginning/end total equity on a consistent basis',async()=>{
   const financial=load('lib/financial-score.ts',{
     './db':{db:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null,error:null})})}),upsert:async()=>({error:null})})})},
-    './dart-errors':dartErrors,'./request-timeout':sharedTiming,
+    './dart-errors':dartErrors,'./request-timeout':sharedTiming,'./stocks':load('lib/stocks.ts'),
     './dart':{findCorp:async()=> '00106641',dartFinancials:async()=>[
       {sj_div:'IS',account_id:'dart_OperatingIncomeLoss',thstrm_amount:'100'},
       {sj_div:'IS',account_id:'ifrs-full_ProfitLoss',thstrm_amount:'150'},

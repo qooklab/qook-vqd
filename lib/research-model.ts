@@ -88,6 +88,7 @@ export function deriveResearch(row: Record<string, any>, snapshot: ResearchSnaps
   ];
   if (snapshot) {
     Object.assign(fields, snapshot.base);
+    if (snapshot.base.balance_score == null && /금융업|업종 분류 미확인/.test(snapshot.basis)) evidence[7] = snapshot.basis + " · 일반기업 부채비율로 대신 채점하지 않습니다.";
     const dps = snapshot.dividends.find(d => d.year === snapshot.year)?.dps ?? null;
     fields.dividend_yield = dps !== null && price !== null && price > 0 ? dps / price * 100 : null;
     evidence[3] = dps === null ? `${snapshot.year}년 주식 종류별 주당 현금배당금 미확인. '-'는 0원으로 처리하지 않습니다.` : `${snapshot.year}년 주당배당 ${dps.toLocaleString("ko-KR")}원 ÷ 최근 수집가${fields.dividend_yield !== null ? ` = ${fields.dividend_yield.toFixed(2)}%` : " 미수집"}. 과거 실적 기준이며 예상 배당률이 아닙니다.`;

@@ -14,6 +14,7 @@ export function Header() {
           </span>
         </Link>
         <nav aria-label="주 메뉴">
+          <Link href="/screen" aria-current={path === "/screen" ? "page" : undefined}>전 종목 선별</Link>
           <Link
             href="/"
             aria-current={
