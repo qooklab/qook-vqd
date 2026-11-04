@@ -1,10 +1,14 @@
 import { db } from "./db";
+import { verifiedCorpCodes } from "./dart-corp-codes";
 import { stocks } from "./stocks";
 import { DartApiError, dartCacheError } from "./dart-errors";
 import { withUpstreamTimeout } from "./request-timeout";
 import { inflateRawSync } from "node:zlib";
 let map: Map<string, string> | null = null;
 export async function findCorp(code: string) {
+  // Registered stocks have issuer IDs verified from FSS. Do not download the full directory.
+  const verified = verifiedCorpCodes[code];
+  if (verified) return verified;
   const key = process.env.DART_API_KEY?.trim();
   const client = db();
   let cachePrimed = false;

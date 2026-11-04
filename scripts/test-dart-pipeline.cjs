@@ -14,9 +14,11 @@ function load(file, mocks = {}) {
   m.require = (id) =>
     Object.hasOwn(mocks, id)
       ? mocks[id]
-      : id === "./stocks"
-        ? load("lib/stocks.ts")
-        : req(id);
+      : id === "./dart-corp-codes"
+        ? { verifiedCorpCodes: {} }
+        : id === "./stocks"
+          ? load("lib/stocks.ts")
+          : req(id);
   m._compile(
     ts.transpileModule(fs.readFileSync(f, "utf8"), {
       compilerOptions: {
@@ -424,4 +426,52 @@ test("a timeout mixed with a missing CFS year stays retryable without mixing rep
     timing.UpstreamTimeoutError,
   );
   assert.deepEqual(calls, ["CFS", "CFS", "CFS"]);
+});
+
+test("every registered stock bypasses full-directory downloads and database lookup", async () => {
+  const before = global.fetch;
+  global.fetch = async () => {
+    throw Error("Full directory must not be requested");
+  };
+  try {
+    const codes = load("lib/dart-corp-codes.ts");
+    const d = load("lib/dart.ts", {
+      "./db": {
+        db: () => {
+          throw Error("Bundled issuer IDs must not require database lookup");
+        },
+      },
+      "./request-timeout": timing,
+      "./dart-errors": errors,
+      "./dart-corp-codes": codes,
+    });
+    for (const [, ticker] of load("lib/stocks.ts").stocks) {
+      const id = await d.findCorp(ticker);
+      assert.match(id, /^\d{8}$/);
+      assert.equal(id, codes.verifiedCorpCodes[ticker]);
+    }
+    assert.equal(await d.findCorp("000270"), "00106641");
+    assert.equal(await d.findCorp("024110"), "00149646");
+    assert.equal(await d.findCorp("005935"), await d.findCorp("005930"));
+  } finally {
+    global.fetch = before;
+  }
+});
+test("bundled issuer IDs match the saved FSS exact-ticker verification snapshot", () => {
+  const snapshot = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, "../docs/data/dart-corp-codes.json"),
+      "utf8",
+    ),
+  );
+  const codes = load("lib/dart-corp-codes.ts").verifiedCorpCodes;
+  assert.equal(snapshot.entries.length, load("lib/stocks.ts").stocks.length);
+  for (const item of snapshot.entries) {
+    assert.equal(codes[item.stockCode], item.corpCode);
+    assert.equal(new URL(item.source).hostname, "dart.fss.or.kr");
+    assert.equal(
+      new URL(item.source).searchParams.get("textCrpNm"),
+      item.issuerStockCode || item.stockCode,
+    );
+  }
 });

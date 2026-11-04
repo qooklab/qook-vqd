@@ -15,9 +15,11 @@ function load(file, mocks = {}) {
       ? mocks[id]
       : ["./dart-errors", "@/lib/dart-errors"].includes(id)
         ? dartErrors
-        : id === "./stocks"
-          ? load("lib/stocks.ts")
-          : original(id);
+        : id === "./dart-corp-codes"
+          ? { verifiedCorpCodes: {} }
+          : id === "./stocks"
+            ? load("lib/stocks.ts")
+            : original(id);
   mod._compile(
     ts.transpileModule(fs.readFileSync(filename, "utf8"), {
       compilerOptions: {

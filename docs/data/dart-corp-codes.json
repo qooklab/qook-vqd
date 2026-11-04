@@ -1,0 +1,187 @@
+{
+  "checkedOn": "2026-11-04",
+  "source": "FSS DART public company search; exact stock-code match",
+  "entries": [
+    {
+      "name": "기아",
+      "stockCode": "000270",
+      "corpCode": "00106641",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=000270"
+    },
+    {
+      "name": "KB금융",
+      "stockCode": "105560",
+      "corpCode": "00688996",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=105560"
+    },
+    {
+      "name": "신한지주",
+      "stockCode": "055550",
+      "corpCode": "00382199",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=055550"
+    },
+    {
+      "name": "하나금융지주",
+      "stockCode": "086790",
+      "corpCode": "00547583",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=086790"
+    },
+    {
+      "name": "현대차",
+      "stockCode": "005380",
+      "corpCode": "00164742",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=005380"
+    },
+    {
+      "name": "메리츠금융지주",
+      "stockCode": "138040",
+      "corpCode": "00860332",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=138040"
+    },
+    {
+      "name": "우리금융지주",
+      "stockCode": "316140",
+      "corpCode": "01350869",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=316140"
+    },
+    {
+      "name": "기업은행",
+      "stockCode": "024110",
+      "corpCode": "00149646",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=024110"
+    },
+    {
+      "name": "KT&G",
+      "stockCode": "033780",
+      "corpCode": "00244455",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=033780"
+    },
+    {
+      "name": "삼성화재",
+      "stockCode": "000810",
+      "corpCode": "00139214",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=000810"
+    },
+    {
+      "name": "삼성생명",
+      "stockCode": "032830",
+      "corpCode": "00126256",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=032830"
+    },
+    {
+      "name": "현대모비스",
+      "stockCode": "012330",
+      "corpCode": "00164788",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=012330"
+    },
+    {
+      "name": "삼성물산",
+      "stockCode": "028260",
+      "corpCode": "00149655",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=028260"
+    },
+    {
+      "name": "SK",
+      "stockCode": "034730",
+      "corpCode": "00181712",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=034730"
+    },
+    {
+      "name": "한국금융지주",
+      "stockCode": "071050",
+      "corpCode": "00432102",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=071050"
+    },
+    {
+      "name": "BNK금융지주",
+      "stockCode": "138930",
+      "corpCode": "00858364",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=138930"
+    },
+    {
+      "name": "JB금융지주",
+      "stockCode": "175330",
+      "corpCode": "00980122",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=175330"
+    },
+    {
+      "name": "iM금융지주",
+      "stockCode": "139130",
+      "corpCode": "00878915",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=139130"
+    },
+    {
+      "name": "현대글로비스",
+      "stockCode": "086280",
+      "corpCode": "00360595",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=086280"
+    },
+    {
+      "name": "SK텔레콤",
+      "stockCode": "017670",
+      "corpCode": "00159023",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=017670"
+    },
+    {
+      "name": "LG유플러스",
+      "stockCode": "032640",
+      "corpCode": "00231363",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=032640"
+    },
+    {
+      "name": "KT",
+      "stockCode": "030200",
+      "corpCode": "00190321",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=030200"
+    },
+    {
+      "name": "한국타이어앤테크놀로지",
+      "stockCode": "161390",
+      "corpCode": "00937324",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=161390"
+    },
+    {
+      "name": "금호석유",
+      "stockCode": "011780",
+      "corpCode": "00106368",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=011780"
+    },
+    {
+      "name": "POSCO홀딩스",
+      "stockCode": "005490",
+      "corpCode": "00155319",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=005490"
+    },
+    {
+      "name": "LG화학",
+      "stockCode": "051910",
+      "corpCode": "00356361",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=051910"
+    },
+    {
+      "name": "삼성전자",
+      "stockCode": "005930",
+      "corpCode": "00126380",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=005930"
+    },
+    {
+      "name": "삼성전자우",
+      "stockCode": "005935",
+      "corpCode": "00126380",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=005930",
+      "issuerStockCode": "005930"
+    },
+    {
+      "name": "고려아연",
+      "stockCode": "010130",
+      "corpCode": "00102858",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=010130"
+    },
+    {
+      "name": "F&F홀딩스",
+      "stockCode": "007700",
+      "corpCode": "00126487",
+      "source": "https://dart.fss.or.kr/dsae001/search.ax?textCrpNm=007700"
+    }
+  ]
+}
