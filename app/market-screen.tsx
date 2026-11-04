@@ -25,18 +25,18 @@ export default function MarketScreen(){
   }
   return <div className="market-screen">
     <section className="screen-policy" aria-labelledby="policy-heading"><div className="section-heading"><h2 id="policy-heading">먼저 기준을 공개합니다.</h2><span className="section-meta">자체 선별 기준 v1</span></div>
-      <div className="screen-rules"><span>코스피·코스닥 보통주</span><span>시가총액 ≥ 1,000억원</span><span>KIS 제공 ROE ≥ 5%</span><span>0 &lt; PER ≤ 15</span><span>0 &lt; PBR ≤ 1.5</span></div>
-      <p>ETF·ETN·스팩·우선주 및 거래정지·정리매매·관리종목은 제외합니다. KONEX는 포함하지 않습니다. ROE·시가총액은 종목 마스터 제공값이며 기업별 재무 기준일이 다를 수 있습니다.</p>
+      <div className="screen-rules"><span>코스피·코스닥 주권(ST) 보통주</span><span>시가총액 ≥ 1,000억원</span><span>KIS 제공 ROE ≥ 5%</span><span>0 &lt; PER ≤ 15</span><span>0 &lt; PBR ≤ 1.5</span></div>
+      <p>ETF·ETN·외국주권(FS)·예탁증서(DR)·스팩·우선주 및 거래정지·정리매매·관리종목은 제외합니다. KONEX는 포함하지 않습니다. ROE·시가총액은 종목 마스터 제공값이며 기업별 재무 기준일이 다를 수 있습니다.</p>
       <p>조건 통과 종목에 동일한 <strong>PER 10점 + PBR 10점</strong>을 적용합니다. 동점은 시가총액 내림차순·종목코드순으로 정렬합니다. 최대 30개를 선정하며 부족한 수를 임의로 채우지 않습니다. 배당은 후보 선정 후 DART에서 검증합니다.</p>
     </section>
     {error&&<div className="notice" role="alert"><strong>수집 확인 필요</strong><span>{error}</span></div>}
     {!data&&!error&&<div className="notice" role="status">공식 종목 마스터와 선별 진행률을 불러오는 중입니다.</div>}
     {data&&<>
       <section className="screen-status" aria-labelledby="screen-status-title"><div className="section-heading"><h2 id="screen-status-title">{data.status==="complete"?"전 종목 1차 선별 완료":data.status==="partial"?"일부 미수집 · 잠정 후보":"전 종목 1차 선별 중"}</h2><span className="screen-state">{data.status==="complete"?"COMPLETE":"IN PROGRESS"}</span></div>
-        <div className="screen-funnel"><div><small>주권 종목</small><strong>{fmt(data.stockCount)}</strong></div><span aria-hidden="true">→</span><div><small>규모·ROE 통과</small><strong>{fmt(data.eligible)}</strong></div><span aria-hidden="true">→</span><div><small>시세 확인</small><strong>{fmt(data.collected)}<em>/{fmt(data.eligible)}</em></strong></div><span aria-hidden="true">→</span><div><small>가격조건 통과</small><strong>{fmt(data.candidateCount)}</strong></div></div>
+        <div className="screen-funnel"><div><small>주권(ST) 종목</small><strong>{fmt(data.stockCount)}</strong></div><span aria-hidden="true">→</span><div><small>규모·ROE 통과</small><strong>{fmt(data.eligible)}</strong></div><span aria-hidden="true">→</span><div><small>시세 확인</small><strong>{fmt(data.collected)}<em>/{fmt(data.eligible)}</em></strong></div><span aria-hidden="true">→</span><div><small>가격조건 통과</small><strong>{fmt(data.candidateCount)}</strong></div></div>
         <progress aria-label="선별 시세 수집 진행률" value={data.collected} max={data.eligible||1}/>
         <p role="status">{data.status==="complete"?"전체 대상의 시세 확인이 끝났습니다. 아래 후보가 관찰 목록에 반영됩니다.":data.status==="partial"?`실패 ${data.failed}종목을 확인하기 전에는 전체 상위 후보로 확정하지 않습니다.`:"서버에서 묶음별로 수집 중입니다. 완료 전의 순위는 잠정 결과입니다."} {data.message}</p>
-        <div className="screen-actions"><button onClick={()=>setActive(v=>!v)}>{active?"자동 진행 일시정지":"저장된 지점부터 이어서"}</button><span>{active?"5초마다 진행률 확인":"현재 서버 묶음 처리 후 멈춥니다."}</span></div>
+        {data.status==="running"&&<div className="screen-actions"><button onClick={()=>setActive(v=>!v)}>{active?"자동 진행 일시정지":"저장된 지점부터 이어서"}</button><span>{active?"5초마다 진행률 확인":"현재 서버 묶음 처리 후 멈춥니다."}</span></div>}
         <p className="section-meta">마스터 수집 {new Date(data.sourceAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})} · 시세 수집 시작 {new Date(data.startedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}{data.completedAt?" · 완료 "+new Date(data.completedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"}):""}</p>
         <p>한 시점의 동시 시세가 아니라 위 수집 기간에 확인한 값입니다. 화면을 닫아도 완료된 묶음은 저장되며, 다시 열면 이어서 진행합니다.</p>
         <details><summary>모집단과 제외 내역</summary><p>마스터의 6자리 영문·숫자 코드 {fmt(data.masterCount)}개 중 주권(ST) {fmt(data.stockCount)}개를 확인했습니다. 순차 제외 사유별 수는 다음과 같습니다.</p><ul>{Object.entries(data.exclusions).map(([reason,count])=><li key={reason}>{reason}: {fmt(count)}</li>)}</ul></details>

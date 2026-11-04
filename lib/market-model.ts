@@ -3,7 +3,7 @@ export type Listing = {code: string; name: string; market: "KOSPI" | "KOSDAQ"; g
 export type ScreenQuote = {code: string; name: string; price: number; per: number | null; pbr: number | null; volume: number | null; updated_at: string};
 export const SCREEN_POLICY = {version: 1, minCap: 1000, minRoe: 5, maxPer: 15, maxPbr: 1.5, limit: 30} as const;
 export function firstExclusion(stock: Listing): string | null {
-  if (stock.group !== "ST") return "주권 외 상품";
+  if (stock.group !== "ST") return "주권(ST) 외 증권";
   if (stock.preferred !== "0") return "우선주·종류 미확인";
   if (stock.spac !== "N") return "스팩·구분 미확인";
   if (stock.halted !== "N" || stock.liquidation !== "N" || stock.managed !== "N") return "거래정지·정리매매·관리·상태 미확인";
