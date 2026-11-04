@@ -1,52 +1,50 @@
 import { db } from "./db";
+import { stocks } from "./stocks";
+import { DartApiError, dartCacheError } from "./dart-errors";
 import { withUpstreamTimeout } from "./request-timeout";
 import { inflateRawSync } from "node:zlib";
 let map: Map<string, string> | null = null;
 export async function findCorp(code: string) {
-  const key = process.env.DART_API_KEY;
-  if (!key) return null;
+  const key = process.env.DART_API_KEY?.trim();
   const client = db();
+  let cachePrimed = false;
   if (client) {
     const lookup = await client
       .from("dart_corp_cache")
       .select("corp_code,checked_at")
       .eq("stock_code", code)
       .maybeSingle();
-    if (lookup.error) throw Error("DART 기업코드 캐시 테이블 미설정");
+    if (lookup.error)
+      throw dartCacheError("DART 기업코드 캐시 조회", lookup.error);
     if (
       lookup.data?.corp_code &&
       Date.now() - new Date(lookup.data.checked_at).getTime() < 30 * 86400000
     )
       return lookup.data.corp_code;
   }
+  if (!key) throw new DartApiError("DART 설정", "CONFIG");
   if (!map) {
     const u = new URL("https://opendart.fss.or.kr/api/corpCode.xml");
     u.searchParams.set("crtfc_key", key);
-    const { response, b } = await withUpstreamTimeout(
+    const b = await withUpstreamTimeout(
       "DART 기업목록 조회",
       20000,
       async (signal) => {
         const response = await fetch(u, { cache: "no-store", signal });
-        if (!response.ok) throw Error("DART corpCode HTTP " + response.status);
-        return { response, b: Buffer.from(await response.arrayBuffer()) };
+        if (!response.ok)
+          throw new DartApiError(
+            "DART 기업목록 조회",
+            "HTTP_" + response.status,
+          );
+        return Buffer.from(await response.arrayBuffer());
       },
     );
     // DART returns XML with an error status instead of a ZIP for invalid keys / quota errors.
     if (b.length < 4 || b.readUInt32LE(0) !== 0x04034b50) {
       const body = b.toString("utf8");
       const status = body.match(/<status>\s*([^<]+)\s*<\/status>/)?.[1];
-      const message = body.match(/<message>\s*([^<]+)\s*<\/message>/)?.[1];
-      if (status)
-        throw Error(
-          "DART 기업목록 API " + status + ": " + (message || "API 오류"),
-        );
-      throw Error(
-        "DART 기업목록 응답이 ZIP이 아닙니다 (HTTP " +
-          response.status +
-          ", content-type " +
-          (response.headers.get("content-type") || "unknown") +
-          ")",
-      );
+      if (status) throw new DartApiError("DART 기업목록 조회", status);
+      throw new DartApiError("DART 기업목록 조회", "INVALID_ARCHIVE");
     }
     let xml = "";
     // Locate ZIP central directory entry. Compressed size in local header may be zero.
@@ -75,16 +73,33 @@ export async function findCorp(code: string) {
       break;
     }
     if (!xml) throw Error("DART ZIP 안에 기업목록 XML 파일이 없습니다");
-    map = new Map();
+    const nextMap = new Map<string, string>();
     for (const x of xml.matchAll(/<list>([\s\S]*?)<\/list>/g)) {
-      const stock = x[1].match(/<stock_code>(\d{6})<\/stock_code>/)?.[1];
-      const corp = x[1].match(/<corp_code>(\d{8})<\/corp_code>/)?.[1];
-      if (stock && corp) map.set(stock, corp);
+      const stock = x[1].match(/<stock_code>\s*(\d{6})\s*<\/stock_code>/)?.[1];
+      const corp = x[1].match(/<corp_code>\s*(\d{8})\s*<\/corp_code>/)?.[1];
+      if (stock && corp) nextMap.set(stock, corp);
     }
-    if (map.size < 100) throw Error("DART 기업코드 목록이 비어 있습니다");
+    if (nextMap.size < 100)
+      throw new DartApiError("DART 기업목록 해석", "INVALID_ARCHIVE");
+    map = nextMap;
+    if (client) {
+      const checked_at = new Date().toISOString();
+      const entries = stocks.flatMap(([, ticker]) => {
+        const corp_code = nextMap.get(ticker === "005935" ? "005930" : ticker);
+        return corp_code ? [{ stock_code: ticker, corp_code, checked_at }] : [];
+      });
+      if (entries.length) {
+        const saved = await client
+          .from("dart_corp_cache")
+          .upsert(entries, { onConflict: "stock_code" });
+        if (saved.error)
+          throw dartCacheError("DART 기업코드 캐시 저장", saved.error);
+        cachePrimed = true;
+      }
+    }
   }
   const corp = map.get(code === "005935" ? "005930" : code) || null;
-  if (corp && client) {
+  if (corp && client && !cachePrimed) {
     const saved = await client.from("dart_corp_cache").upsert(
       {
         stock_code: code,
@@ -93,7 +108,8 @@ export async function findCorp(code: string) {
       },
       { onConflict: "stock_code" },
     );
-    if (saved.error) throw Error("DART 기업코드 캐시 저장 실패");
+    if (saved.error)
+      throw dartCacheError("DART 기업코드 캐시 저장", saved.error);
   }
   return corp;
 }
@@ -101,28 +117,53 @@ export async function dartFinancials(
   corpCode: string,
   year: number,
   reprtCode = "11014",
+  fsDiv: "CFS" | "OFS" = "CFS",
 ) {
-  const key = process.env.DART_API_KEY;
-  if (!key) throw Error("DART_API_KEY missing");
+  const key = process.env.DART_API_KEY?.trim();
+  if (!key) throw new DartApiError("DART 설정", "CONFIG");
+  const stage =
+    "DART " +
+    year +
+    "년 " +
+    (fsDiv === "CFS" ? "연결" : "별도") +
+    " 재무제표 조회";
   const u = new URL("https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json");
   for (const [k, v] of Object.entries({
     crtfc_key: key,
     corp_code: corpCode,
     bsns_year: String(year),
     reprt_code: reprtCode,
-    fs_div: "CFS",
+    fs_div: fsDiv,
   }))
     u.searchParams.set(k, v);
-  const j = await withUpstreamTimeout(
-    "DART " + year + "년 재무제표 조회",
-    12000,
-    async (signal) => {
+  let j: unknown;
+  try {
+    j = await withUpstreamTimeout(stage, 12000, async (signal) => {
       const r = await fetch(u, { cache: "no-store", signal });
-      if (!r.ok) throw Error(`DART HTTP ${r.status}`);
+      if (!r.ok) throw new DartApiError(stage, "HTTP_" + r.status);
       return r.json();
-    },
-  );
-  if (j.status !== "000") throw Error(`DART ${j.status}: ${j.message}`);
+    });
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      throw new DartApiError(stage, "INVALID_RESPONSE");
+    throw error;
+  }
+  if (
+    !j ||
+    typeof j !== "object" ||
+    !("status" in j) ||
+    typeof j.status !== "string"
+  )
+    throw new DartApiError(stage, "INVALID_RESPONSE");
+  if (j.status !== "000") throw new DartApiError(stage, j.status);
+  if (
+    !("list" in j) ||
+    !Array.isArray(j.list) ||
+    !j.list.every(
+      (row) => row && typeof row === "object" && !Array.isArray(row),
+    )
+  )
+    throw new DartApiError(stage, "INVALID_RESPONSE");
+  if (j.list.length === 0) throw new DartApiError(stage, "013");
   return j.list as Record<string, string>[];
 }
-// DART corp_code (8 digits) differs from the stock ticker (6 digits).

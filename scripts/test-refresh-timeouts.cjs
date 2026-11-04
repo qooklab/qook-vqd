@@ -10,7 +10,14 @@ function load(file, mocks = {}) {
   mod.filename = filename;
   mod.paths = Module._nodeModulePaths(path.dirname(filename));
   const original = mod.require.bind(mod);
-  mod.require = (id) => (Object.hasOwn(mocks, id) ? mocks[id] : original(id));
+  mod.require = (id) =>
+    Object.hasOwn(mocks, id)
+      ? mocks[id]
+      : ["./dart-errors", "@/lib/dart-errors"].includes(id)
+        ? dartErrors
+        : id === "./stocks"
+          ? load("lib/stocks.ts")
+          : original(id);
   mod._compile(
     ts.transpileModule(fs.readFileSync(filename, "utf8"), {
       compilerOptions: {
@@ -23,6 +30,7 @@ function load(file, mocks = {}) {
   );
   return mod.exports;
 }
+const dartErrors = load("lib/dart-errors.ts");
 const timing = load("lib/request-timeout.ts");
 const policy = load("lib/refresh-policy.ts");
 async function deadlineTest(task) {
@@ -175,8 +183,26 @@ test("refresh route returns structured 504 and preserves authentication", async 
   const before = process.env.CRON_SECRET;
   process.env.CRON_SECRET = "test-secret";
   const route = load("app/api/refresh/route.ts", {
-    "@/lib/stocks": { stocks: [["기업은행", "024110"]] },
-    "@/lib/db": { db: () => ({}) },
+    "@/lib/stocks": {
+      stocks: [
+        ["기업은행", "024110"],
+        ["기아", "000270"],
+      ],
+    },
+    "@/lib/db": {
+      db: () => ({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { code: "024110" },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+    },
     "@/lib/kis": {
       quote: async () => {
         throw new Error("must not request KIS in financial mode");
@@ -259,11 +285,11 @@ test("bank scoring remains unchanged when statements arrive successfully", async
   assert.equal(saved.balance_score, null);
 });
 
-function manualHarness(responses) {
+function manualHarness(responses, selected = ["024110"]) {
   let index = 0,
     calls = 0,
     refreshes = 0;
-  const state = [["024110"], "test-secret", false, "", 0, [], ""];
+  const state = [selected, "test-secret", false, "", 0, [], ""];
   const mocks = {
     react: {
       useState: (initial) => {
@@ -395,6 +421,32 @@ test("manual authentication failure is not retried", async () => {
     await h.run();
     assert.equal(h.calls, 1);
     assert.equal(h.state[5][0].ok, false);
+  } finally {
+    global.fetch = before;
+  }
+});
+
+test("DART key or quota failure stops remaining selected stocks immediately", async () => {
+  const before = global.fetch;
+  const h = manualHarness(
+    [
+      {
+        status: 502,
+        body: {
+          error: "DART [020]: 요청 한도 초과",
+          retryable: false,
+          stopBatch: true,
+        },
+      },
+    ],
+    ["024110", "000270"],
+  );
+  global.fetch = h.fetch;
+  try {
+    await h.run();
+    assert.equal(h.calls, 1);
+    assert.equal(h.state[5].length, 1);
+    assert.equal(h.state[4], 1);
   } finally {
     global.fetch = before;
   }

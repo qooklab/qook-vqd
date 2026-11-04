@@ -2201,3 +2201,25 @@ button:active:not(:disabled) {
     transition: none !important;
   }
 }
+
+.manual-results {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin: 18px 0;
+}
+.manual-results summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 12px 0;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+.manual-results p {
+  font-size: 0.8125rem;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.manual-results strong {
+  color: var(--ink);
+  font-weight: 600;
+}

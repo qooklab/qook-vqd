@@ -7,7 +7,13 @@ import {
   isRefreshTimeout,
   shouldRetryRefresh,
 } from "@/lib/refresh-policy";
-type Outcome = { code: string; name: string; ok: boolean; error?: string };
+type Outcome = {
+  code: string;
+  name: string;
+  ok: boolean;
+  error?: string;
+  detail?: string;
+};
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 export default function ManualRefresh() {
@@ -67,6 +73,8 @@ export default function ManualRefresh() {
               ok?: boolean;
               code?: string;
               retryable?: boolean;
+              stopBatch?: boolean;
+              detail?: string;
             } = {};
             try {
               json = JSON.parse(raw);
@@ -84,7 +92,15 @@ export default function ManualRefresh() {
             }
             const error = String(json.error || "요청 실패");
             if (res.ok && json.ok === true) {
-              outcome = { code, name, ok: true };
+              outcome = {
+                code,
+                name,
+                ok: true,
+                detail:
+                  mode === "financial" && typeof json.detail === "string"
+                    ? json.detail
+                    : undefined,
+              };
               break;
             }
             const timeout = isRefreshTimeout(res.status, error, json.code);
@@ -118,6 +134,7 @@ export default function ManualRefresh() {
             };
             // Stop for invalid credentials or a persistent upstream server failure.
             stop =
+              json.stopBatch === true ||
               res.status === 401 ||
               res.status === 503 ||
               error.includes("KIS token HTTP") ||
@@ -228,8 +245,9 @@ export default function ManualRefresh() {
           <span className="collection-source">금융감독원 · OpenDART</span>
           <h3 id="dart-action-title">재무 정보 · 평가</h3>
           <p>
-            3개년 재무제표로 이익 안정성·재무 건전성·성장률을 평가합니다. 시세
-            수집 후 사용하며, 재무 결과는 7일간 재사용합니다.
+            3개년 연결 재무제표(자료가 없으면 별도 재무제표)로 이익 안정성·재무
+            건전성·성장률을 평가합니다. 시세 수집 후 사용하며, 재무 결과는 7일간
+            재사용합니다.
           </p>
           <button
             type="button"
@@ -253,6 +271,18 @@ export default function ManualRefresh() {
             {!running && done < selected.length ? " · 오류로 조기 중단" : ""}
           </p>
         </div>
+      )}
+      {activeMode === "financial" && outcomes.some((x) => x.ok && x.detail) && (
+        <details className="manual-results">
+          <summary>DART 평가 결과 보기</summary>
+          {outcomes
+            .filter((x) => x.ok && x.detail)
+            .map((x) => (
+              <p key={x.code}>
+                <strong>{x.name}</strong> · {x.detail}
+              </p>
+            ))}
+        </details>
       )}
       {outcomes.some((x) => !x.ok) && (
         <div className="manual-errors">

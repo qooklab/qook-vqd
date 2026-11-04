@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { quote } from "@/lib/kis";
 import { financialScores } from "@/lib/financial-score";
 import { isTimeoutError } from "@/lib/request-timeout";
+import { DartApiError } from "@/lib/dart-errors";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function POST(req: NextRequest) {
@@ -43,23 +44,6 @@ export async function POST(req: NextRequest) {
     );
   try {
     if (financialOnly) {
-      const scores = await financialScores(code);
-      const extra: Record<string, number> = {};
-      for (const field of [
-        "profit_score",
-        "balance_score",
-        "growth_score",
-      ] as const)
-        if (typeof scores[field] === "number") extra[field] = scores[field]!;
-      if (!Object.keys(extra).length)
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "재무점수 미산정: " + scores.note,
-            detail: scores.note,
-          },
-          { status: 422 },
-        );
       const { data: existing, error: readError } = await client
         .from("stock_latest")
         .select("code")
@@ -71,6 +55,25 @@ export async function POST(req: NextRequest) {
           { error: "시세를 먼저 수집한 종목만 재무평가할 수 있습니다" },
           { status: 422 },
         );
+
+      const scores = await financialScores(code);
+      const extra: Record<string, number | null> = {};
+      for (const field of [
+        "profit_score",
+        "balance_score",
+        "growth_score",
+      ] as const)
+        extra[field] =
+          typeof scores[field] === "number" ? scores[field]! : null;
+      if (!Object.values(extra).some((value) => value !== null))
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "재무점수 미산정: " + scores.note,
+            detail: scores.note,
+          },
+          { status: 422 },
+        );
       const { error } = await client
         .from("stock_latest")
         .update(extra)
@@ -80,7 +83,12 @@ export async function POST(req: NextRequest) {
         {
           ok: true,
           code,
-          updatedFields: Object.keys(extra),
+          updatedFields: Object.keys(extra).filter(
+            (field) => extra[field] !== null,
+          ),
+          clearedFields: Object.keys(extra).filter(
+            (field) => extra[field] === null,
+          ),
           detail: scores.note,
         },
         { headers: { "Cache-Control": "no-store" } },
@@ -113,6 +121,21 @@ export async function POST(req: NextRequest) {
           retryable: true,
         },
         { status: 504, headers: { "Cache-Control": "no-store" } },
+      );
+    if (e instanceof DartApiError)
+      return NextResponse.json(
+        {
+          error: e.message,
+          code: "DART_API_ERROR",
+          dartStatus: e.status,
+          retryable: e.retryable,
+          stopBatch: e.stopBatch,
+        },
+        {
+          status:
+            e.status === "CONFIG" || e.status.startsWith("CACHE_") ? 503 : 502,
+          headers: { "Cache-Control": "no-store" },
+        },
       );
     return NextResponse.json(
       {
