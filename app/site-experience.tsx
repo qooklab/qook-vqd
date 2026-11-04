@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { InteractionSound } from "@/lib/interaction-sound";
-import { shouldAnimateNavigation } from "@/lib/navigation-effects";
 
 const routes = [
   {href: "/", title: "Research", ko: "종목 리서치", caption: "30 companies. Three lenses.", no: "01"},
@@ -28,13 +27,10 @@ export function ExperienceControls() {
 
 export default function SiteExperience({children}: {children: ReactNode}) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sound, setSound] = useState(true);
   const [audioReady, setAudioReady] = useState(false);
   const [xray, setXray] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "cover" | "leave">("idle");
-  const [destination, setDestination] = useState("RESEARCH");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeMenu, setActiveMenu] = useState(0);
   const audio = useRef<InteractionSound | null>(null);
@@ -43,8 +39,6 @@ export default function SiteExperience({children}: {children: ReactNode}) {
   const menuRef = useRef<HTMLDivElement>(null);
   const originFocus = useRef<HTMLElement | null>(null);
   const moving = useRef(false);
-  const navigationTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const clearNavigation = useCallback(() => {navigationTimers.current.forEach(clearTimeout); navigationTimers.current = [];}, []);
   const cue = useCallback((kind: "hover" | "press" | "navigate" | "toggle") => {
     if (soundRef.current) audio.current?.play(kind);
   }, []);
@@ -72,9 +66,9 @@ export default function SiteExperience({children}: {children: ReactNode}) {
     document.addEventListener("visibilitychange", hide);
     return () => {
       document.removeEventListener("pointerdown", pointerDown); document.removeEventListener("keydown", keyDown); document.removeEventListener("visibilitychange", hide);
-      audio.current?.close(); clearNavigation();
+      audio.current?.close();
     };
-  }, [clearNavigation]);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("xray-mode", xray);
@@ -82,11 +76,8 @@ export default function SiteExperience({children}: {children: ReactNode}) {
   }, [xray]);
 
   useEffect(() => {
-    const wasMoving = moving.current;
-    moving.current = false; clearNavigation(); setMenu(false);
-    setPhase(wasMoving ? "leave" : "idle");
-    if (wasMoving) navigationTimers.current.push(setTimeout(() => setPhase("idle"), 500));
-  }, [pathname, clearNavigation]);
+    moving.current = false; setMenu(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!menu) return;
@@ -115,24 +106,18 @@ export default function SiteExperience({children}: {children: ReactNode}) {
   }, [menu]);
 
   useEffect(() => {
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     const interactive = "a[href], button, summary, label:has(input[type=radio]), input[type=checkbox]";
     const click = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       if (target.closest(interactive)) cue("press");
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
-      if (!anchor || !shouldAnimateNavigation({href: anchor.href, current: location.href, button: event.button, modified: event.metaKey || event.ctrlKey || event.shiftKey || event.altKey, prevented: event.defaultPrevented, download: anchor.hasAttribute("download"), target: anchor.target, reduced: reduced.matches})) return;
+      if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
       const url = new URL(anchor.href, location.href);
-      event.preventDefault();
-      if (moving.current) return;
-      moving.current = true; clearNavigation();
-      setDestination(url.pathname.startsWith("/stocks/") ? "A CLOSER LOOK" : url.pathname === "/methodology" ? "THE METHOD" : url.pathname === "/manage" ? "THE DATA" : "THE RESEARCH");
-      setPhase("cover"); cue("navigate");
-      navigationTimers.current.push(setTimeout(() => {setMenu(false); router.push(url.pathname + url.search);}, 200));
-      // Slow data must never trap a visitor behind a decorative transition.
-      navigationTimers.current.push(setTimeout(() => setPhase("leave"), 1300));
-      navigationTimers.current.push(setTimeout(() => {setPhase("idle"); moving.current = false;}, 2000));
+      if (url.origin === location.origin && url.pathname !== location.pathname) {
+        // Leave navigation to Next Link; no interception, overlay or artificial delay.
+        moving.current = true; setMenu(false); cue("navigate");
+      }
     };
     const hover = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
@@ -143,7 +128,7 @@ export default function SiteExperience({children}: {children: ReactNode}) {
     document.addEventListener("click", click, true);
     document.addEventListener("pointerover", hover, {passive: true});
     return () => {document.removeEventListener("click", click, true); document.removeEventListener("pointerover", hover);};
-  }, [router, cue, clearNavigation]);
+  }, [cue]);
 
   useEffect(() => {
     const fine = matchMedia("(hover: hover) and (pointer: fine)");
@@ -218,7 +203,6 @@ export default function SiteExperience({children}: {children: ReactNode}) {
     <div className="experience-page" inert={menu || undefined} data-audio-state={sound ? audioReady ? "ready" : "awaiting-gesture" : "muted"}>{children}</div>
     <div className="reading-progress" aria-hidden="true"><span style={{transform: `scaleX(${scrollProgress / 100})`}} /></div>
     <div className="precision-cursor" ref={cursor} aria-hidden="true"><span /><i /><b>LOOK CLOSER</b></div>
-    <div className="page-wipe" data-phase={phase} aria-hidden="true"><div><span className="wipe-wordmark">qook<span>.</span></span><span className="wipe-destination">{destination}</span></div><span className="wipe-caption">VALUE / QUALITY / DIVIDEND</span></div>
     {xray && <div className="inspection-label" role="status"><span /> X-RAY ON · 레이아웃 살펴보기</div>}
     {menu && <div id="studio-menu" className="studio-menu" role="dialog" aria-modal="true" aria-label="전체 메뉴" ref={menuRef}>
       <div className="studio-menu-top"><span className="menu-wordmark">qook<span>.</span></span><span>THE RESEARCH DESK</span><button className="menu-dismiss" aria-label="전체 메뉴 닫기" onClick={() => setMenu(false)}>✕</button></div>

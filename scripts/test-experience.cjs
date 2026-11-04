@@ -6,13 +6,7 @@ function load(file) {
   mod._compile(ts.transpileModule(fs.readFileSync(name,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,name);
   return mod.exports;
 }
-const {shouldAnimateNavigation:animate}=load('lib/navigation-effects.ts');
 const {InteractionSound}=load('lib/interaction-sound.ts');
-const nav={href:'https://example.com/methodology',current:'https://example.com/',button:0,modified:false,prevented:false,download:false,target:'',reduced:false};
-test('only ordinary same-origin route changes are intercepted',()=>{
-  assert.equal(animate(nav),true);
-  for(const patch of [{modified:true},{button:1},{prevented:true},{download:true},{target:'_blank'},{reduced:true},{href:'https://external.com/other'},{href:'mailto:person@example.com'},{href:'https://example.com/#universe-title'},{href:'https://example.com/?q=ki'},{href:'https://example.com/methodology#rules'}])assert.equal(animate({...nav,...patch}),false,JSON.stringify(patch));
-});
 function fakeAudio({blocked=false}={}) {
   const nodes=[], events=[];
   class AudioContext {
