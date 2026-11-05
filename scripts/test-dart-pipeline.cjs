@@ -352,6 +352,7 @@ async function withRoute(scores, task) {
     }),
   };
   const route = load("app/api/refresh/route.ts", {
+    "@/lib/resolve-stock": {resolveStock:async code=>["기업은행",code]},
     "@/lib/stocks": { stocks: [["기업은행", "024110"]] },
     "@/lib/db": { db: () => client },
     "@/lib/kis": {

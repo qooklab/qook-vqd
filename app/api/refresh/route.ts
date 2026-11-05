@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stocks } from "@/lib/stocks";
 import { db } from "@/lib/db";
 import { quote } from "@/lib/kis";
 import { financialScores } from "@/lib/financial-score";
 import { isTimeoutError } from "@/lib/request-timeout";
 import { DartApiError } from "@/lib/dart-errors";
+import { resolveStock } from "@/lib/resolve-stock";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function POST(req: NextRequest) {
@@ -22,11 +22,9 @@ export async function POST(req: NextRequest) {
       { error: "올바른 6자리 영문·숫자 종목코드를 입력하세요" },
       { status: 400 },
     );
-  let found: readonly [string,string] | undefined = stocks.find((x) => x[1] === code);
-  if (!found) {
-    const {watchlist} = await import("@/lib/market-screen");
-    found = (await watchlist()).stocks.find(s => s[1] === code);
-  }
+  let found: readonly [string,string] | undefined;
+  try { found = await resolveStock(code); }
+  catch { return NextResponse.json({error:"종목 마스터 조회 실패. 잠시 후 다시 시도해 주세요."},{status:503}); }
   if (!found)
     return NextResponse.json(
       { error: "등록되지 않은 종목입니다" },
@@ -48,6 +46,14 @@ export async function POST(req: NextRequest) {
     );
   try {
     if (body?.mode === "research") {
+      const existing=await client.from("stock_latest").select("price").eq("code",code).maybeSingle();
+      if(existing.error)throw Error("저장 시세 조회 실패");
+      if(!existing.data||existing.data.price==null){
+        const q=await quote(code);
+        if(q.price==null||q.price<=0)throw Error("주가를 확인할 수 없습니다. 시세 조회 후 다시 시도해 주세요.");
+        const saved=await client.from("stock_latest").upsert({code,name:found[0],...q,updated_at:new Date().toISOString()},{onConflict:"code"});
+        if(saved.error)throw Error("조회한 시세 저장 실패");
+      }
       const {updateResearch} = await import("@/lib/research");
       const snapshot = await updateResearch(code, body?.force === true);
       return NextResponse.json({ok: true, code, detail: `${snapshot.year}년 기준 · 배당 5년·실제 소각·3년 수익성 평가 ${snapshot.errors.length ? "· 일부 자료 미확인: " + snapshot.errors.join(" / ") : "완료"}`, checkedAt: snapshot.checkedAt}, {headers: {"Cache-Control": "no-store"}});

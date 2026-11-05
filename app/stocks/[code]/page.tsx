@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { stocks, criteria, calculate } from "@/lib/stocks";
+import { criteria, calculate } from "@/lib/stocks";
 import { Header, Footer } from "../../site-chrome";
 import { readResearch, updateResearch } from "@/lib/research";
 import { deriveResearch, researchFresh } from "@/lib/research-model";
+import { resolveStock } from "@/lib/resolve-stock";
+import StockRefresh from "../../stock-refresh";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const money = (value: unknown) =>
@@ -15,8 +17,7 @@ export default async function Detail({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  let found: readonly [string,string] | undefined = stocks.find((x) => x[1] === code);
-  if (!found) { const {watchlist} = await import("@/lib/market-screen"); found = (await watchlist()).stocks.find(s => s[1] === code); }
+  const found = await resolveStock(code);
   if (!found) notFound();
   const client = db();
   const response = client
@@ -31,7 +32,9 @@ export default async function Detail({
     researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
     return null;
   });
-  if (response?.data && !researchError && !researchFresh(snapshot)) {
+  const {watchlist} = await import("@/lib/market-screen");
+  const isWatched=(await watchlist()).stocks.some(s=>s[1]===code);
+  if (isWatched && response?.data && !researchError && !researchFresh(snapshot)) {
     try { snapshot = await updateResearch(code); }
     catch (error) { researchError = error instanceof Error ? error.message : "추가 평가 조회 실패"; }
   }
@@ -44,8 +47,8 @@ export default async function Detail({
       <Header />
       <main id="main-content" className="dashboard detail-dashboard">
         <div className="detail-actions">
-          <Link className="back-link" href="/">
-            ← 전체 종목
+          <Link className="back-link" href="/market">
+            ← 전체 종목 데이터
           </Link>
           <Link className="text-link" href="/methodology">
             평가 기준 알아보기 →
@@ -121,6 +124,7 @@ export default async function Detail({
             </div>
           </div>
         </div>
+        <StockRefresh code={code}/>
         <section className="detail-section">
           <div className="section-heading">
             <div>

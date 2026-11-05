@@ -185,6 +185,7 @@ test("refresh route returns structured 504 and preserves authentication", async 
   const before = process.env.CRON_SECRET;
   process.env.CRON_SECRET = "test-secret";
   const route = load("app/api/refresh/route.ts", {
+    "@/lib/resolve-stock": {resolveStock:async code=>["기업은행",code]},
     "@/lib/stocks": {
       stocks: [
         ["기업은행", "024110"],

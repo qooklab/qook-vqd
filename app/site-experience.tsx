@@ -5,10 +5,11 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { InteractionSound } from "@/lib/interaction-sound";
 
 const routes = [
-  {href: "/screen", title: "Screen", ko: "전 종목 선별", caption: "Same rules. A wider universe.", no: "00"},
-  {href: "/", title: "Research", ko: "종목 리서치", caption: "Selected companies. Three lenses.", no: "01"},
-  {href: "/methodology", title: "Method", ko: "평가 기준", caption: "The thinking behind the numbers.", no: "02"},
-  {href: "/manage", title: "Data", ko: "데이터 관리", caption: "Keep your research up to date.", no: "03"},
+  {href: "/market", title: "Market", ko: "전체 종목 데이터", caption: "Every stock. Every result.", no: "00"},
+  {href: "/screen", title: "Screen", ko: "전 종목 선별", caption: "Same rules. A wider universe.", no: "01"},
+  {href: "/", title: "Research", ko: "종목 리서치", caption: "Selected companies. Three lenses.", no: "02"},
+  {href: "/methodology", title: "Method", ko: "평가 기준", caption: "The thinking behind the numbers.", no: "03"},
+  {href: "/manage", title: "Data", ko: "데이터 관리", caption: "Keep your research up to date.", no: "04"},
 ];
 type Experience = {sound: boolean; audioReady: boolean; toggleSound: () => void; xray: boolean; toggleXray: () => void; menu: boolean; toggleMenu: () => void};
 const ExperienceContext = createContext<Experience | null>(null);

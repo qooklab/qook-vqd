@@ -23,7 +23,7 @@ export default function MarketScreen(){
     try{const response=await fetch("/api/screen",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+secret},body:JSON.stringify({retryOnly})});const json=await response.json();if(!response.ok)throw Error(json.error||"재수집 실패");setData(json);setActive(true);setTick(t=>t+1);}
     catch(error){setError(error instanceof Error?error.message:"재수집 실패");}finally{setBusy(false);}
   }
-  return <div className="market-screen">
+  return <div className="market-screen"><div className="universe-context"><strong>선정되지 않은 종목도 확인하세요.</strong><Link href="/market">전체 결과·탈락 사유·개별 조회 ↗</Link></div>
     <section className="screen-policy" aria-labelledby="policy-heading"><div className="section-heading"><h2 id="policy-heading">먼저 기준을 공개합니다.</h2><span className="section-meta">자체 선별 기준 v1</span></div>
       <div className="screen-rules"><span>코스피·코스닥 주권(ST) 보통주</span><span>시가총액 ≥ 1,000억원</span><span>KIS 제공 ROE ≥ 5%</span><span>0 &lt; PER ≤ 15</span><span>0 &lt; PBR ≤ 1.5</span></div>
       <p>ETF·ETN·외국주권(FS)·예탁증서(DR)·스팩·우선주 및 거래정지·정리매매·관리종목은 제외합니다. KONEX는 포함하지 않습니다. ROE·시가총액은 종목 마스터 제공값이며 기업별 재무 기준일이 다를 수 있습니다.</p>

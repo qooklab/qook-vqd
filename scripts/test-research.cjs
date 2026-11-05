@@ -140,7 +140,7 @@ test('ROE uses annual net profit and average beginning/end total equity on a con
 test('new authenticated research mode runs DART collection without requesting KIS or exposing a secret', async()=>{
   let calls=0; const secret=process.env.CRON_SECRET;process.env.CRON_SECRET='test-secret';
   const route=load('app/api/refresh/route.ts',{
-    '@/lib/stocks':{stocks:[['기아','000270']]},'@/lib/db':{db:()=>({})},
+    '@/lib/resolve-stock':{resolveStock:async()=>['기아','000270']},'@/lib/db':{db:()=>({from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{price:10000},error:null})})})})})},
     '@/lib/kis':{quote:async()=>{throw Error('KIS should not be called');}},
     '@/lib/financial-score':{},'@/lib/research':{updateResearch:async()=>{calls++;return snapshot();}},
     '@/lib/request-timeout':load('lib/request-timeout.ts'),'@/lib/dart-errors':dartErrors,
