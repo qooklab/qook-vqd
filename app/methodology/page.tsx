@@ -4,7 +4,7 @@ import { criteria } from "@/lib/stocks";
 export const metadata = {
   title: "분석 철학과 평가 기준 | Qook VQD",
   description:
-    "오일전문가 저평가 우량 배당주 관점으로 설계한 Qook VQD의 10가지 평가 기준과 점수 해석 안내",
+    "Qook VQD의 저평가·기업의 질·주주환원을 살펴보는 10가지 평가 기준과 점수 해석 안내",
 };
 const groups = [
   {
@@ -54,13 +54,10 @@ export default function Methodology() {
             <span>배당과 주주환원으로 기다린다.</span>
           </h1>
           <p>
-            Qook VQD는 ‘오일전문가 저평가 우량 배당주’라는 투자 관점을 바탕으로
-            가격·기업의 질·주주환원을 함께 살펴보는 개인 투자 분석 도구입니다.
+            Qook VQD는 가격·기업의 질·주주환원을 함께 살펴보는 개인 투자 분석 도구입니다.
           </p>
           <div className="method-note">
-            이 페이지의 100점 배점과 구체적인 계산 규칙은 Qook VQD에서 자체
-            설계한 기준이며, ‘오일전문가’가 직접 공인하거나 발표한 공식
-            점수표라는 뜻은 아닙니다.
+            Qook VQD는 10가지 평가 항목을 합산해 100점 만점으로 평가합니다.
           </div>
         </section>
         <section className="method-section">
