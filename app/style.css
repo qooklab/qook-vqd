@@ -2574,3 +2574,5 @@ html { scroll-behavior: auto; }
 @media(max-width: 1100px) { .topbar nav { gap: 16px; }.topbar-inner { gap: 20px; } }
 @media(max-width: 760px) { .screen-funnel { flex-wrap: wrap; gap: 16px; }.screen-funnel > div { flex: 0 0 38%; }.screen-funnel > span:nth-of-type(2) { display: none; }.universe-context { display: block; }.universe-context > * { display: block; margin-bottom: 5px; }.universe-context a { margin-left: 0; }.studio-menu-body nav > a > span { font-size: clamp(40px, 9vw, 65px); } }
 @media(max-width: 600px) { .screen-dashboard { padding-top: 24px; }.screen-dashboard .workspace-heading h1 { font-size: 36px; }.screen-rules { gap: 6px; }.screen-rules > span { font-size: 11px; padding: 7px 10px; }.screen-funnel strong { font-size: 32px; }.market-screen p { font-size: 12px; } }
+
+.explorer-detail-link { display: inline-block; font-size: 11px; padding: 8px 0; color: var(--accent); }

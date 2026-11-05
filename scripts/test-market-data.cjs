@@ -31,7 +31,8 @@ test('non-selected stocks resolve from master while unknown codes and non-stock 
 test('data reader requests bounded chunks and never collects external quotes or truncates at 1000 rows',async()=>{
  const listings=Array.from({length:1105},(_,i)=>listing(String(100000+i)));let max=0,calls=0;
  const {readMarketData}=load('lib/market-data.ts',{'./market-screen':{readMarketJob:async()=>job(listings)},'./db':{db:()=>({from:()=>({select:()=>({in:async(_,codes)=>{max=Math.max(max,codes.length);calls++;return {data:[],error:null};}})})})}});
- const result=await readMarketData();assert.equal(result.rows.length,1105);assert.equal(max,200);assert.equal(calls,12);
+ const result=await readMarketData();assert.equal(result.rows.length,1105);assert.equal(max,200);assert.equal(calls,12);assert.equal(result.rows[0].evidence,undefined);
+ const detail=await readMarketData('100000');assert.equal(detail.rows.length,1);assert.equal(detail.rows[0].evidence.length,10);assert.equal(calls,14);
 });
 test('DART-only request for an unselected stock bootstraps missing price after authentication',async()=>{
  const old=process.env.CRON_SECRET;process.env.CRON_SECRET='test-secret';let quoted=0,research=0,saved=0;
