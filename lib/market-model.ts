@@ -21,7 +21,22 @@ export function decodeJob(note: unknown): ScreenJob | null {
   if (typeof note !== "string") return null;
   try {const j=JSON.parse(note);return j.kind === "market-screen-v1" && Array.isArray(j.listings) && Array.isArray(j.quotes) && Array.isArray(j.failures) && Number.isInteger(j.cursor) ? j : null;} catch {return null;}
 }
-export type ScreenJob = {kind: "market-screen-v1"; runId: string; sourceAt: string; startedAt: string; completedAt: string | null; status: "running" | "complete" | "partial"; listings: Listing[]; cursor: number; quotes: ScreenQuote[]; failures: {code: string; error: string; attempts: number}[]; attempted: number; leaseUntil: string | null; cooldownUntil: string | null; message: string | null; published?: {runId: string; completedAt: string; selected: ScreenQuote[]}};
+export type ScreenRecord = {
+  id:string; at:string; status:"complete"|"partial"|"interrupted";
+  eligible:number; collected:number; failed:number; passed:number;
+  selected:{name:string;code:string}[];
+};
+export function recordScreen(job:ScreenJob, at:string): ScreenRecord[] {
+  const candidates=selectCandidates(job.quotes,job.listings);
+  const entry:ScreenRecord={
+    id:job.runId, at:job.completedAt ?? at,
+    status:job.status==="running"?"interrupted":job.status,
+    eligible:eligibleListings(job).length,collected:job.quotes.length,failed:job.failures.length,passed:candidates.length,
+    selected:candidates.slice(0,SCREEN_POLICY.limit).map(({name,code})=>({name,code})),
+  };
+  return [entry,...(job.history??[]).filter(r=>r.id!==entry.id)].slice(0,50);
+}
+export type ScreenJob = {history?:ScreenRecord[];kind: "market-screen-v1"; runId: string; sourceAt: string; startedAt: string; completedAt: string | null; status: "running" | "complete" | "partial"; listings: Listing[]; cursor: number; quotes: ScreenQuote[]; failures: {code: string; error: string; attempts: number}[]; attempted: number; leaseUntil: string | null; cooldownUntil: string | null; message: string | null; published?: {runId: string; completedAt: string; selected: ScreenQuote[]}};
 export function eligibleListings(job: ScreenJob) {return job.listings.filter(s => firstExclusion(s) === null);}
 export function publicScreen(job: ScreenJob) {
   const exclusions: Record<string, number>={};

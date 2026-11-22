@@ -4,7 +4,7 @@ import {randomUUID} from "node:crypto";
 import {db} from "./db";
 import {quote, KisApiError} from "./kis";
 import {downloadMarket} from "./market-master";
-import {decodeJob, eligibleListings, publicScreen, selectCandidates, type ScreenJob} from "./market-model";
+import {recordScreen, decodeJob, eligibleListings, publicScreen, selectCandidates, type ScreenJob} from "./market-model";
 import {stocks} from "./stocks";
 const JOB_CODE = "__market_screen_v1";
 const PAGE_SIZE = 40;
@@ -32,6 +32,7 @@ export async function restartMarketJob(retryOnly: boolean) {
   if(job.leaseUntil && Date.parse(job.leaseUntil)>Date.now())throw Error("수집 중입니다. 현재 묶음이 끝난 뒤 다시 시도해 주세요.");
   const now=new Date().toISOString();
   const next:ScreenJob=retryOnly?{...job,status:"running",completedAt:null,failures:job.failures.map(f=>({...f,attempts:0})),message:null,cooldownUntil:null}:{...job,runId:randomUUID(),listings:await downloadMarket(),sourceAt:now,startedAt:now,completedAt:null,status:"running",cursor:0,quotes:[],failures:[],attempted:0,leaseUntil:null,cooldownUntil:null,message:null};
+  if(!retryOnly) next.history=recordScreen(job,now);
   const result=await client.from("dart_financial_cache").update({note:JSON.stringify(next),checked_at:now}).eq("code",JOB_CODE).eq("checked_at",stamp!).select("code").maybeSingle();
   if(result.error||!result.data)throw Error("다른 요청이 선별 작업을 변경했습니다. 다시 확인해 주세요.");
   return next;
@@ -88,6 +89,7 @@ export async function processMarketBatch() {
     working.published={runId:working.runId,completedAt:working.completedAt!,selected:candidates};
     if(candidates.length){const saved=await client.from("stock_latest").upsert(candidates.map(({code,name,price,per,pbr,volume,updated_at})=>({code,name,price,per,pbr,volume,updated_at})),{onConflict:"code"});if(saved.error)throw Error("선별 후보 저장 실패");}
   }
+  if(working.status!=="running") working.history=recordScreen(working,new Date().toISOString());
   working.leaseUntil=null;
   const saved=await client.from("dart_financial_cache").update({note:JSON.stringify(working),checked_at:new Date().toISOString()}).eq("code",JOB_CODE).eq("checked_at",leaseStamp);
   if(saved.error)throw Error("전 종목 수집 진행률 저장 실패");
@@ -106,5 +108,5 @@ export function composeWatchlist(job: ScreenJob | null, pins: readonly (readonly
 }
 export async function watchlist() {
   const [job, settings] = await Promise.all([readMarketJob().catch(()=>null), readPins()]);
-  return {...composeWatchlist(job,settings.pins), ...settings, run:job ? publicScreen(job) : null};
+  return {...composeWatchlist(job,settings.pins), ...settings, history:job?.history ?? (job?.completedAt ? recordScreen(job,job.completedAt) : []), run:job ? publicScreen(job) : null};
 }

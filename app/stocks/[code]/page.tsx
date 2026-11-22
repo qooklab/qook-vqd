@@ -1,3 +1,4 @@
+import {RememberStock} from "../../recent-views";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -44,6 +45,7 @@ export default async function Detail({
   const evaluated = score.vals.filter((v) => v != null).length;
   return (
     <div className="site-shell">
+      <RememberStock code={code} name={found[0]} />
       <Header />
       <main id="main-content" className="dashboard detail-dashboard">
         <div className="detail-actions">
