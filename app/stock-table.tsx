@@ -1,4 +1,5 @@
 "use client";
+import { isPinnedStock } from "@/lib/pinned-stocks";
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 export type StockRow = {
@@ -279,7 +280,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                       <Link className="stock-link" href={`/stocks/${r.code}`}>
                         <span className="stock-icon">{r.name.slice(0, 1)}</span>
                         <span>
-                          <strong>{r.name}</strong>
+                          <strong>{r.name}{isPinnedStock(r.code) && <small> · 고정</small>}</strong>
                           <small>KRX · {r.code}</small>
                         </span>
                         <span className="stock-arrow" aria-hidden="true">
@@ -331,7 +332,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                 <div className="mobile-stock-top">
                   <span className="stock-icon">{r.name.slice(0, 1)}</span>
                   <div className="mobile-stock-name">
-                    <strong>{r.name}</strong>
+                    <strong>{r.name}{isPinnedStock(r.code) && <small> · 고정</small>}</strong>
                     <small>KRX · {r.code}</small>
                   </div>
                   <span className="mobile-chevron" aria-hidden="true">

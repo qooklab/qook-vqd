@@ -1,3 +1,4 @@
+import { issuerCode } from "./pinned-stocks";
 import { db } from "./db";
 import { verifiedCorpCodes } from "./dart-corp-codes";
 import { stocks } from "./stocks";
@@ -5,7 +6,8 @@ import { DartApiError, dartCacheError } from "./dart-errors";
 import { withUpstreamTimeout } from "./request-timeout";
 import { inflateRawSync } from "node:zlib";
 let map: Map<string, string> | null = null;
-export async function findCorp(code: string) {
+export async function findCorp(tickerCode: string) {
+  const code = issuerCode(tickerCode);
   // Registered stocks have issuer IDs verified from FSS. Do not download the full directory.
   const verified = verifiedCorpCodes[code];
   if (verified) return verified;
@@ -101,7 +103,7 @@ export async function findCorp(code: string) {
       const directory = await client.from("dart_financial_cache").upsert({code:"__dart_directory_v1",note:JSON.stringify({kind:"corp-directory-v1",entries:[...nextMap]}),checked_at},{onConflict:"code"});
       if(directory.error)throw dartCacheError("DART 전체 기업코드 캐시 저장",directory.error);
       const entries = stocks.flatMap(([, ticker]) => {
-        const corp_code = nextMap.get(ticker === "005935" ? "005930" : ticker);
+        const corp_code = nextMap.get(issuerCode(ticker));
         return corp_code ? [{ stock_code: ticker, corp_code, checked_at }] : [];
       });
       if (entries.length) {
@@ -114,7 +116,7 @@ export async function findCorp(code: string) {
       }
     }
   }
-  const corp = map.get(code === "005935" ? "005930" : code) || null;
+  const corp = map.get(code) || null;
   if (corp && client && !cachePrimed) {
     const saved = await client.from("dart_corp_cache").upsert(
       {

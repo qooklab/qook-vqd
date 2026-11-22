@@ -1,3 +1,4 @@
+import { issuerCode } from "./pinned-stocks";
 import { db } from "./db";
 import { dartAnnual, findCorp } from "./dart";
 import { financialScores } from "./financial-score";
@@ -80,8 +81,8 @@ async function collect(code: string, force: boolean): Promise<ResearchSnapshot> 
   const snapshot: ResearchSnapshot = {
     version: 1, year, checkedAt: new Date().toISOString(),
     basis: financial?.note || "DART 재무평가 조회 지연 · 기존 점수 유지",
-    dividends: dividendHistory(reports, year, code === "005935"),
-    ...retirementData(treasury || [], shares || [], code === "005935"),
+    dividends: dividendHistory(reports, year, issuerCode(code) !== code),
+    ...retirementData(treasury || [], shares || [], issuerCode(code) !== code),
     fundamentals: financial?.fundamentals || [],
     base: financial ? {
       profit_score: financial.profit_score ?? null,

@@ -1,3 +1,4 @@
+import { withPinnedStocks } from "./pinned-stocks";
 import {randomUUID} from "node:crypto";
 import {db} from "./db";
 import {quote, KisApiError} from "./kis";
@@ -92,7 +93,7 @@ export async function processMarketBatch() {
 }
 export async function watchlist() {
   const job=await readMarketJob().catch(()=>null);
-  if(job?.status==="complete")return {published:true,run:publicScreen(job),stocks:selectCandidates(job.quotes,job.listings).slice(0,30).map(q=>[q.name,q.code] as const)};
-  if(job?.published)return {published:true,run:publicScreen(job),stocks:job.published.selected.map(q=>[q.name,q.code] as const)};
-  return {published:false,run:job?publicScreen(job):null,stocks:[...stocks] as (readonly [string,string])[]};
+  if(job?.status==="complete")return {published:true,run:publicScreen(job),stocks:withPinnedStocks(selectCandidates(job.quotes,job.listings).map(q=>[q.name,q.code] as const))};
+  if(job?.published)return {published:true,run:publicScreen(job),stocks:withPinnedStocks(job.published.selected.map(q=>[q.name,q.code] as const))};
+  return {published:false,run:job?publicScreen(job):null,stocks:withPinnedStocks(stocks)};
 }
