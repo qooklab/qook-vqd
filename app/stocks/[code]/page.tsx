@@ -82,12 +82,23 @@ export default async function Detail({
         <div className="stats detail-stats">
           <div className="stat-card">
             <div className="stat-label">
-              최근 수집가 <span>PRICE</span>
+              현재가(최근 수집) <span>PRICE</span>
             </div>
             <div className="stat-value detail-value">
               {raw.price != null ? money(raw.price) : "미수집"}
             </div>
             <div className="stat-foot">KIS API · 수집 시점 기준</div>
+          </div>
+          <div className="stat-card entry-price">
+            <div className="stat-label">
+              모형 매수기준 <span>MODEL ENTRY</span>
+            </div>
+            <div className="stat-value detail-value">
+              {raw.buy_price != null ? money(raw.buy_price) : "미산정"}
+            </div>
+            <div className="stat-foot">
+              자체 모형 추정가의 80% · 확정 적정가 아님
+            </div>
           </div>
           <div className="stat-card score-card">
             <div className="stat-label">
@@ -110,17 +121,6 @@ export default async function Detail({
                   ? "일부 평가"
                   : "평가 데이터 대기"}{" "}
               · 평가 가능 배점 {score.possible}/100
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">
-              모형 매수기준 <span>MODEL ENTRY</span>
-            </div>
-            <div className="stat-value detail-value">
-              {raw.buy_price != null ? money(raw.buy_price) : "미산정"}
-            </div>
-            <div className="stat-foot">
-              자체 모형 추정가의 80% · 확정 적정가 아님
             </div>
           </div>
         </div>
