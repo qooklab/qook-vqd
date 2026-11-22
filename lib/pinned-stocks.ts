@@ -7,12 +7,10 @@ export const pinnedStocks = [
   ["SK텔레콤", "017670"],
 ] as const;
 
-const pinnedCodes = new Set<string>(pinnedStocks.map(([, code]) => code));
-export const isPinnedStock = (code: string) => pinnedCodes.has(code);
-
-export function withPinnedStocks(ranked: readonly (readonly [string, string])[]) {
-  const selected: (readonly [string, string])[] = [...pinnedStocks];
-  const seen = new Set(pinnedCodes);
+export type StockPair = readonly [string, string];
+export function withPinnedStocks(ranked: readonly StockPair[], pins: readonly StockPair[] = pinnedStocks) {
+  const selected: StockPair[] = [...pins];
+  const seen = new Set(pins.map(stock => stock[1]));
   for (const stock of ranked) {
     if (selected.length >= 30) break;
     if (!seen.has(stock[1])) {

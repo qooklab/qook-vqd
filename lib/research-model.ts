@@ -4,6 +4,7 @@ export type ResearchSnapshot = {
   year: number;
   checkedAt: string;
   basis: string;
+  sourceDates?: Partial<Record<"financial"|"dividend"|"retirement",string>>;
   dividends: {year: number; dps: number | null; receipt: string | null}[];
   retired: number | null;
   issued: number | null;
@@ -36,6 +37,7 @@ export function dividendHistory(reports: {year: number; rows: DartRow[]}[], year
     const row = matches[0];
     ["thstrm", "frmtrm", "lwfr"].forEach((key, i) => {
       const dps = numeric(row[key]);
+      if (dps === null || dps < 0) return;
       values.set(report.year - i, {year: report.year - i, dps: dps !== null && dps >= 0 ? dps : null, receipt: receipt(row)});
     });
   }
@@ -64,6 +66,8 @@ export function researchFresh(snapshot: ResearchSnapshot | null, now = Date.now(
   if (!snapshot) return false;
   const year = new Date(now).getUTCFullYear() - 1;
   const age = now - Date.parse(snapshot.checkedAt);
+  const dates=snapshot.sourceDates;
+  if(dates && !snapshot.errors.length && (["financial","dividend","retirement"] as const).some(k=>!dates[k] || now-Date.parse(dates[k]!)>=7*86400000)) return false;
   return snapshot.year === year && age >= 0 && age < (snapshot.errors.length ? 15 * 60000 : 7 * 86400000);
 }
 export function deriveResearch(row: Record<string, any>, snapshot: ResearchSnapshot | null) {
@@ -97,7 +101,7 @@ export function deriveResearch(row: Record<string, any>, snapshot: ResearchSnaps
     const paid = known ? dividends.filter(d => d! > 0).length : 0;
     const maintained = known && dividends.every((d, i) => i === 0 || d! >= dividends[i - 1]!);
     fields.dividend_history_score = !known ? null : paid === 5 ? maintained ? 10 : 8 : paid === 4 ? 6 : paid === 3 ? 4 : paid > 0 ? 2 : 0;
-    evidence[4] = `${snapshot.dividends.map(d => `${d.year}: ${d.dps === null ? "미확인" : d.dps.toLocaleString("ko-KR") + "원"}`).join(" / ")}. 5년 모두 확인 시 평가. 주식분할·특별배당에 따른 주당금액 변동은 별도 검토하세요.`;
+    evidence[4] = `5년 중 ${dividends.filter(value => value !== null).length}년 확인 · ${snapshot.dividends.map(d => `${d.year}: ${d.dps === null ? "미확인" : d.dps.toLocaleString("ko-KR") + "원"}`).join(" / ")}. 5년 모두 확인 시 평가. 주식분할·특별배당에 따른 주당금액 변동은 별도 검토하세요.`;
     const ratio = snapshot.retired !== null && snapshot.issued !== null ? snapshot.retired / (snapshot.issued + snapshot.retired) * 100 : null;
     fields.buyback_score = snapshot.retired === 0 ? 0 : ratio === null ? null : ratio >= 3 ? 10 : ratio >= 2 ? 8 : ratio >= 1 ? 6 : ratio > 0 ? 4 : 0;
     evidence[5] = snapshot.retired === null ? `${snapshot.year}년 해당 주식 종류의 소각 총계 미확인. 공시 부재는 0점으로 보지 않습니다.` : `${snapshot.year}년 실제 소각 ${snapshot.retired.toLocaleString("ko-KR")}주${ratio === null ? " · 발행주식 수 미확인" : ` · 기말 발행주식+연간 소각 대비 ${ratio.toFixed(2)}%`}. 취득·소각 결정 공시만으로 점수를 주지 않습니다. 분할·병합 시 비율은 별도 검토하세요.`;
@@ -107,5 +111,9 @@ export function deriveResearch(row: Record<string, any>, snapshot: ResearchSnaps
     evidence[9] = minimum === null ? "3년 순이익·기초/기말 자본 자료 부족. 경쟁력 점수는 3년 ROE의 대리지표이며 시장지위·브랜드·전환비용 평가는 포함하지 않습니다." : `경쟁력 대리지표: ${snapshot.fundamentals.map(f => `${f.year} ROE ${f.roe!.toFixed(1)}%`).join(" / ")}. 3년 최저 ROE ${minimum.toFixed(1)}% 기준. 순이익÷평균 총자본. 경제적 해자 자체를 검증한 점수가 아닙니다.`;
   }
   if (fields.balance_score == null && ["105560","055550","086790","138040","316140","024110","000810","032830","071050","138930","175330","139130"].includes(row.code)) evidence[7] = "금융업은 일반기업 부채비율로 평가하지 않습니다. 은행 BIS/CET1·보험 K-ICS 등 업종 지표 확인 전까지 미평가입니다.";
+  for (const [source,indices] of [["financial",[6,7,8,9]],["dividend",[3,4]],["retirement",[5]]] as const) {
+    const stamp=snapshot?.sourceDates?.[source];
+    if(stamp) for(const index of indices) evidence[index]+=" · 자료 확인 "+stamp.slice(0,10);
+  }
   return {fields, evidence, fair, margin};
 }

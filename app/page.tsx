@@ -30,7 +30,7 @@ export default async function Home() {
     .map(([name, code]) => {
       const raw = result?.data?.find((x) => x.code === code) || {};
       const enriched = {...raw, ...deriveResearch({...raw, code}, research.get(code) || null).fields};
-      return { name, code, ...enriched, ...calculate(enriched) };
+      return { reason: universe.reasons[code], name, code, ...enriched, ...calculate(enriched) };
     })
     .sort((a, b) => b.assessed - a.assessed);
   const collected = rows.filter((r) => r.price != null).length;

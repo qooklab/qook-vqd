@@ -1,8 +1,10 @@
 "use client";
-import { isPinnedStock } from "@/lib/pinned-stocks";
+
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 export type StockRow = {
+  reason: string;
+  vals: (number | null)[];
   name: string;
   code: string;
   price: number | null;
@@ -39,7 +41,7 @@ function Score({ row: r }: { row: StockRow }) {
         {r.possible > 0 ? (
           <>
             <strong>{r.assessed}</strong>
-            <span>/ 100</span>
+            <span>점</span>
           </>
         ) : (
           <span className="unrated-label">미평가</span>
@@ -56,7 +58,7 @@ function Score({ row: r }: { row: StockRow }) {
         <span style={{ width: `${r.possible}%` }} />
         <b style={{ width: `${r.assessed}%` }} />
       </div>
-      <small>평가 가능 배점 {r.possible} / 100</small>
+      <small>{r.vals.filter(value => value != null).length}/10개 평가 · 확인된 항목 배점 {r.possible}점</small>
     </div>
   );
 }
@@ -280,7 +282,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                       <Link className="stock-link" href={`/stocks/${r.code}`}>
                         <span className="stock-icon">{r.name.slice(0, 1)}</span>
                         <span>
-                          <strong>{r.name}{isPinnedStock(r.code) && <small> · 고정</small>}</strong>
+                          <strong>{r.name}<small> · {r.reason}</small></strong>
                           <small>KRX · {r.code}</small>
                         </span>
                         <span className="stock-arrow" aria-hidden="true">
@@ -332,7 +334,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                 <div className="mobile-stock-top">
                   <span className="stock-icon">{r.name.slice(0, 1)}</span>
                   <div className="mobile-stock-name">
-                    <strong>{r.name}{isPinnedStock(r.code) && <small> · 고정</small>}</strong>
+                    <strong>{r.name}<small> · {r.reason}</small></strong>
                     <small>KRX · {r.code}</small>
                   </div>
                   <span className="mobile-chevron" aria-hidden="true">

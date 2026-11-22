@@ -1,5 +1,6 @@
+import { readPins } from "./pin-settings";
 import { db } from "./db";
-import { readMarketJob } from "./market-screen";
+import { composeWatchlist, readMarketJob } from "./market-screen";
 import { decodeResearch, type ResearchSnapshot } from "./research-model";
 import { marketDataRows } from "./market-data-model";
 
@@ -22,7 +23,8 @@ export async function readMarketData(code?:string) {
     stored.push(...prices.data||[]);
     for(const row of snapshots.data||[]){const snapshot=decodeResearch(row.note);if(snapshot)research.set(row.code,snapshot);}
   }
-  const rows=marketDataRows(job,stored,research).filter(row=>!code||row.code===code).map(({evidence,...row})=>({...row,evidence:code?evidence:undefined}));
+  const tracked = composeWatchlist(job,(await readPins()).pins);
+  const rows=marketDataRows(job,stored,research,tracked.reasons).filter(row=>!code||row.code===code).map(({evidence,...row})=>({...row,evidence:code?evidence:undefined}));
   return {run:{runId:job.runId,status:job.status,sourceAt:job.sourceAt,completedAt:job.completedAt},rows};
 }
 export type MarketData = Awaited<ReturnType<typeof readMarketData>>;

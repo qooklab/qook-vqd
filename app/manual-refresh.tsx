@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { stocks } from "@/lib/stocks";
+import { stocks, criteria } from "@/lib/stocks";
 import {
   isRateLimit,
   isRefreshTimeout,
@@ -16,7 +16,24 @@ type Outcome = {
 };
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
-export default function ManualRefresh({list = stocks}: {list?: readonly (readonly [string,string])[]} = {}) {
+type Pair = readonly [string,string];
+type Settings = {pins:Pair[]; revision:string|null; choices:Pair[]; missing:string[][]};
+export default function ManualRefresh({list = stocks,settings}: {list?: readonly Pair[];settings?:Settings} = {}) {
+  const [pinQuery,setPinQuery]=useState("");
+  const [pinMessage,setPinMessage]=useState("");
+  const [criterion,setCriterion]=useState(0);
+  async function togglePin(code:string,pin:boolean) {
+    setRunning(true);
+    try {
+      const response=await fetch("/api/pins",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+secret},body:JSON.stringify({code,pin,revision:settings?.revision})});
+      const result=await response.json();
+      if(!response.ok) throw Error(result.error);
+      setPinMessage(pin?"고정했습니다.":"고정을 해제했습니다.");
+      setPinQuery("");
+      router.refresh();
+    } catch(error) {setPinMessage(error instanceof Error?error.message:"저장 실패");}
+    finally {setRunning(false);}
+  }
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [secret, setSecret] = useState("");
@@ -33,15 +50,15 @@ export default function ManualRefresh({list = stocks}: {list?: readonly (readonl
       name.toLowerCase().includes(filter.toLowerCase()) ||
       code.includes(filter),
   );
-  async function run(mode: "price" | "financial" = "price") {
-    if (!selected.length || !secret || running) return;
+  async function run(mode: "price" | "financial" = "price", targets=selected, source="all") {
+    if (!targets.length || !secret || running) return;
     setActiveMode(mode);
     setRunning(true);
     setDone(0);
     setOutcomes([]);
     const results: Outcome[] = [];
     try {
-      for (const code of selected) {
+      for (const code of targets) {
         const name = list.find((x) => x[1] === code)?.[0] || code;
         // The KIS gateway enforces a per-second request limit shared across app keys.
         // Space requests out, even when a previous request failed.
@@ -64,7 +81,7 @@ export default function ManualRefresh({list = stocks}: {list?: readonly (readonl
                 "content-type": "application/json",
                 authorization: "Bearer " + secret,
               },
-              body: JSON.stringify({ code, mode: mode === "financial" ? "research" : mode }),
+              body: JSON.stringify({ code, source, force:source!=="all", mode: mode === "financial" ? "research" : mode }),
               cache: "no-store",
             });
             const raw = await res.text();
@@ -216,6 +233,20 @@ export default function ManualRefresh({list = stocks}: {list?: readonly (readonl
           onChange={(e) => setSecret(e.target.value)}
         />
       </div>
+      {settings && <section className="collection-action">
+        <h3>고정 종목 관리</h3><p>고정 {settings.pins.length}개 · 자동 선별 가능 {30-settings.pins.length}개</p>
+        <ul>{settings.pins.map(([name,code])=><li key={code}>{name} <button disabled={!secret||running} onClick={()=>togglePin(code,false)}>고정 해제</button></li>)}</ul>
+        <input aria-label="고정할 종목 검색" placeholder="종목명 또는 코드" value={pinQuery} onChange={e=>setPinQuery(e.target.value)}/>
+        {pinQuery.trim() && <ul>{settings.choices.filter(([n,c])=>(n.includes(pinQuery.trim())||c.includes(pinQuery.trim()))&&!settings.pins.some(s=>s[1]===c)).slice(0,12).map(([name,code])=><li key={code}>{name} · {code} <button disabled={!secret||running||settings.pins.length>=30} onClick={()=>togglePin(code,true)}>고정</button></li>)}</ul>}
+        <p role="status">{pinMessage}</p>
+        <h3>미평가 항목 재조회</h3>
+        <select aria-label="재조회할 항목" value={criterion} onChange={e=>setCriterion(Number(e.target.value))}>{criteria.map(([name],index)=><option key={name} value={index}>{name} · 미평가 {settings.missing[index].length}종목</option>)}</select>
+        <button disabled={running||!secret||!settings.missing[criterion].length} onClick={()=>{
+          const targets=settings.missing[criterion];setSelected(targets);
+          const source=criterion<3?"price":criterion<=4?"dividend":criterion===5?"retirement":"financial";
+          void run(source==="price"?"price":"financial",targets,source);
+        }}>해당 자료만 재조회</button>
+      </section>}
       <p className="collection-selection">
         선택한 종목 <strong>{selected.length}개</strong> · 인증키를 입력한 뒤
         가져올 정보를 선택하세요.
