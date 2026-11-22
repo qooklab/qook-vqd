@@ -20,11 +20,11 @@ type Key =
   "name" | "price" | "per" | "pbr" | "assessed" | "buy_price" | "updated_at";
 const cols: { key: Key; label: string }[] = [
   { key: "name", label: "종목 / 코드" },
-  { key: "price", label: "최근 수집가" },
+  { key: "price", label: "현재가(최근 수집)" },
+  { key: "buy_price", label: "모형 매수기준" },
   { key: "per", label: "PER" },
   { key: "pbr", label: "PBR" },
   { key: "assessed", label: "확인 점수" },
-  { key: "buy_price", label: "모형 매수기준" },
   { key: "updated_at", label: "최근 수집일" },
 ];
 const scopes = [
@@ -300,17 +300,17 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                         <span className="empty-label">미수집</span>
                       )}
                     </td>
-                    <td>{r.per ?? "—"}</td>
-                    <td>{r.pbr ?? "—"}</td>
-                    <td>
-                      <Score row={r} />
-                    </td>
-                    <td>
+                    <td className="entry-price">
                       {r.buy_price != null ? (
                         fmt(r.buy_price) + " 원"
                       ) : (
                         <span className="empty-label">미산정</span>
                       )}
+                    </td>
+                    <td>{r.per ?? "—"}</td>
+                    <td>{r.pbr ?? "—"}</td>
+                    <td>
+                      <Score row={r} />
                     </td>
                     <td className="updated-cell">
                       {r.updated_at
@@ -342,17 +342,9 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
                   </span>
                 </div>
                 <div className="mobile-card-data">
-                  <div className="mobile-stock-price">
-                    <small>최근 수집가</small>
-                    <strong>
-                      {r.price != null ? fmt(r.price) + " 원" : "미수집"}
-                    </strong>
-                    <span>
-                      모형 매수기준{" "}
-                      {r.buy_price != null
-                        ? fmt(r.buy_price) + " 원"
-                        : "미산정"}
-                    </span>
+                  <div className="mobile-price-pair">
+                    <div><small>현재가(최근 수집)</small><strong>{r.price != null ? fmt(r.price) + "원" : "미수집"}</strong></div>
+                    <div className="entry-price"><small>모형 매수기준</small><strong>{r.buy_price != null ? fmt(r.buy_price) + "원" : "미산정"}</strong></div>
                   </div>
                   <Score row={r} />
                 </div>

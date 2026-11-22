@@ -1,0 +1,16 @@
+.stock-table .price-cell, .stock-table .entry-price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.stock-table .entry-price, .mobile-price-pair .entry-price, .detail-stats .entry-price {
+  background: #eef5ee;
+  color: #204b37;
+}
+.detail-stats .entry-price .stat-value {color: #204b37;}
+.mobile-stock-card .mobile-card-data {display: grid; grid-template-columns: minmax(0,1fr);}
+.mobile-price-pair {display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px;}
+.mobile-price-pair > div {padding: 8px; border-radius: 6px;}
+.mobile-price-pair small, .mobile-price-pair strong {display: block;}
+.mobile-price-pair small {font-size: 12px;}
+.mobile-price-pair strong {margin-top: 4px; font-size: clamp(16px,4.5vw,22px); font-variant-numeric: tabular-nums;}

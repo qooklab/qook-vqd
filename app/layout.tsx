@@ -1,4 +1,5 @@
 import "./style.css";
+import "./prices.css";
 import type { ReactNode } from "react";
 import SiteExperience from "./site-experience";
 export const metadata = {
