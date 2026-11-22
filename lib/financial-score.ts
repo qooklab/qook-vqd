@@ -1,3 +1,4 @@
+import {issuerCode} from "./pinned-stocks";
 import { db } from "./db";
 import { isTimeoutError, UpstreamTimeoutError } from "./request-timeout";
 import { findCorp, dartFinancials, dartFinancialIndustry } from "./dart";
@@ -75,7 +76,7 @@ export async function financialScores(
   const { data: cached, error: cacheError } = await client
     .from("dart_financial_cache")
     .select("*")
-    .eq("code", code)
+    .eq("code", "financial:"+code)
     .maybeSingle();
   if (cacheError) throw dartCacheError("DART 평가 캐시 조회", cacheError);
   const age = cached?.checked_at
@@ -98,7 +99,7 @@ export async function financialScores(
     };
   const corp = await findCorp(code);
   if (!corp) return { note: "DART 기업 고유번호 미확인" };
-  let financialIndustry: boolean | null = financials.has(code) ? true : stocks.some(s => s[1] === code) ? false : null;
+  let financialIndustry: boolean | null = financials.has(issuerCode(code)) ? true : stocks.some(s => s[1] === code) ? false : null;
   if(financialIndustry === null) {
     try { financialIndustry = await dartFinancialIndustry(corp); }
     catch(error) { if(error instanceof DartApiError && error.stopBatch)throw error; }
@@ -211,7 +212,7 @@ export async function financialScores(
     return { ...result, note: result.note + " · 점수 계산에 필요한 계정과목 누락" };
   const { error: saveError } = await client.from("dart_financial_cache").upsert(
     {
-      code,
+      code: "financial:"+code,
       profit_score: result.profit_score ?? null,
       balance_score: result.balance_score ?? null,
       growth_score: result.growth_score ?? null,

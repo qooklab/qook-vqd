@@ -1,3 +1,4 @@
+import { issuerCode } from "./pinned-stocks";
 import { db } from "./db";
 import { dartAnnual, findCorp } from "./dart";
 import { financialScores } from "./financial-score";
@@ -26,14 +27,14 @@ export async function readResearchMap(codes?: string[]): Promise<Map<string, Res
     return snapshot ? [[row.code, snapshot] as const] : [];
   }));
 }
-export async function updateResearch(code: string, force = false): Promise<ResearchSnapshot> {
+export async function updateResearch(code: string, force = false, source: "all"|"dividend"|"financial"|"retirement" = "all"): Promise<ResearchSnapshot> {
   const existing = pending.get(code);
-  if (existing) return existing;
-  const work = collect(code, force).finally(() => pending.delete(code));
+  if (existing) { if (!force) return existing; await existing.catch(()=>null); return updateResearch(code,force,source); }
+  const work = collect(code, force, source).finally(() => pending.delete(code));
   pending.set(code, work);
   return work;
 }
-async function collect(code: string, force: boolean): Promise<ResearchSnapshot> {
+async function collect(code: string, force: boolean, source: "all"|"dividend"|"financial"|"retirement"): Promise<ResearchSnapshot> {
   const client = db();
   if (!client) throw Error("Supabase 설정 누락");
   const stored = await readResearch(code);
@@ -62,33 +63,54 @@ async function collect(code: string, force: boolean): Promise<ResearchSnapshot> 
       return null;
     }
   }
-  // Independent sources run concurrently. All financial years use the same CFS/OFS basis.
-  const [financial, latestDividend, olderDividend, treasury, shares] = await Promise.all([
-    optional("재무평가", () => financialScores(code, true)),
-    optional(`${year}년 배당`, () => dartAnnual("alotMatter", corp, year)),
-    optional(`${year - 2}년 배당`, () => dartAnnual("alotMatter", corp, year - 2)),
-    optional(`${year}년 소각`, () => dartAnnual("tesstkAcqsDspsSttus", corp, year)),
-    optional(`${year}년 발행주식`, () => dartAnnual("stockTotqySttus", corp, year)),
+  const prior = stored?.year === year ? stored : null;
+  const all = source === "all";
+  const wantFinancial = all || source === "financial";
+  const wantDividend = all || source === "dividend";
+  const wantRetirement = all || source === "retirement";
+  const preferred = issuerCode(code) !== code;
+  const stamp = new Date().toISOString();
+  const [financial, treasury, shares, reports] = await Promise.all([
+    wantFinancial ? optional("재무평가", () => financialScores(code,true)) : null,
+    wantRetirement ? optional("소각", () => dartAnnual("tesstkAcqsDspsSttus",corp,year)) : null,
+    wantRetirement ? optional("발행주식", () => dartAnnual("stockTotqySttus",corp,year)) : null,
+    (async () => {
+      const reports: {year:number;rows:DartRow[]}[] = [];
+      if (!wantDividend) return reports;
+      const attempted = new Set<number>();
+      async function read(y:number) {
+        attempted.add(y);
+        const rows = await optional(y+"년 배당",()=>dartAnnual("alotMatter",corp,y));
+        if(rows) reports.push({year:y,rows});
+      }
+      await Promise.all([read(year),read(year-2)]);
+      for (let y=year;y>=year-4;y--) {
+        if(issues.some(e=>e instanceof DartApiError && e.stopBatch)) break;
+        if(!attempted.has(y) && dividendHistory(reports,year,preferred).some(d=>d.year===y && d.dps===null)) await read(y);
+      }
+      return reports;
+    })(),
   ]);
-  // Invalid keys, blocked access and quota failures must remain actionable, not cached as no-data.
-  const fatal = issues.find(e => e instanceof DartApiError && e.stopBatch);
-  if (fatal) throw fatal;
-  const reports = [
-    latestDividend ? {year, rows: latestDividend} : null,
-    olderDividend ? {year: year - 2, rows: olderDividend} : null,
-  ].filter((r): r is {year: number; rows: DartRow[]} => r !== null);
+  const fatal=issues.find(e=>e instanceof DartApiError && e.stopBatch);
+  if(fatal) throw fatal;
+  const dates = {...prior?.sourceDates};
+  if(prior && !prior.sourceDates) for(const key of ["financial","dividend","retirement"] as const) dates[key]=prior.checkedAt;
+  const dividendFailed=errors.some(e=>e.includes("년 배당"));
+  const retirementFailed=errors.some(e=>/^(소각|발행주식):/.test(e));
+  const useDividends=wantDividend && !(dividendFailed && prior);
+  const useRetirement=wantRetirement && !(retirementFailed && prior);
+  if(financial) dates.financial=stamp;
+  if(useDividends && !dividendFailed) dates.dividend=stamp;
+  if(useRetirement && !retirementFailed) dates.retirement=stamp;
+  const previousErrors = (prior?.errors || []).filter(e=>!all && !(source==="financial"?e.includes("재무평가"):source==="dividend"?e.includes("배당"):/소각|발행주식/.test(e)));
   const snapshot: ResearchSnapshot = {
-    version: 1, year, checkedAt: new Date().toISOString(),
-    basis: financial?.note || "DART 재무평가 조회 지연 · 기존 점수 유지",
-    dividends: dividendHistory(reports, year, code === "005935"),
-    ...retirementData(treasury || [], shares || [], code === "005935"),
-    fundamentals: financial?.fundamentals || [],
-    base: financial ? {
-      profit_score: financial.profit_score ?? null,
-      balance_score: financial.balance_score ?? null,
-      growth_score: financial.growth_score ?? null,
-    } : {},
-    errors,
+    version:1, year, checkedAt:stamp, sourceDates:dates,
+    basis:financial?.note ?? prior?.basis ?? "재무자료 수집 대기",
+    dividends:useDividends ? dividendHistory(reports,year,preferred) : prior?.dividends ?? dividendHistory([],year,preferred),
+    ...(useRetirement ? retirementData(treasury||[],shares||[],preferred) : {retired:prior?.retired??null,issued:prior?.issued??null,retirementReceipt:prior?.retirementReceipt??null,shareReceipt:prior?.shareReceipt??null}),
+    fundamentals:financial?.fundamentals ?? prior?.fundamentals ?? [],
+    base:financial ? {profit_score:financial.profit_score??null,balance_score:financial.balance_score??null,growth_score:financial.growth_score??null} : prior?.base ?? {},
+    errors:[...previousErrors,...errors],
   };
   const {error: cacheError} = await client.from("dart_financial_cache").upsert({
     code,

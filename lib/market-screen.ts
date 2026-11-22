@@ -1,3 +1,5 @@
+import { readPins } from "./pin-settings";
+import { withPinnedStocks } from "./pinned-stocks";
 import {randomUUID} from "node:crypto";
 import {db} from "./db";
 import {quote, KisApiError} from "./kis";
@@ -90,9 +92,19 @@ export async function processMarketBatch() {
   const saved=await client.from("dart_financial_cache").update({note:JSON.stringify(working),checked_at:new Date().toISOString()}).eq("code",JOB_CODE).eq("checked_at",leaseStamp);
   if(saved.error)throw Error("전 종목 수집 진행률 저장 실패");
 }
+export function composeWatchlist(job: ScreenJob | null, pins: readonly (readonly [string,string])[]) {
+  const ranked = job?.status === "complete" ? selectCandidates(job.quotes,job.listings) : job?.published?.selected;
+  const candidates = ranked?.map(q => [q.name,q.code] as const) ?? stocks;
+  const tracked = withPinnedStocks(candidates,pins);
+  const reasons: Record<string,string> = {};
+  for (const [,code] of pins) reasons[code] = "고정 추적";
+  let rank = 0;
+  for (const [,code] of tracked) {
+    if (!reasons[code]) reasons[code] = ranked ? `자동 선별 ${++rank}위` : "초기 관찰 종목";
+  }
+  return {stocks:tracked, reasons, published:!!ranked};
+}
 export async function watchlist() {
-  const job=await readMarketJob().catch(()=>null);
-  if(job?.status==="complete")return {published:true,run:publicScreen(job),stocks:selectCandidates(job.quotes,job.listings).slice(0,30).map(q=>[q.name,q.code] as const)};
-  if(job?.published)return {published:true,run:publicScreen(job),stocks:job.published.selected.map(q=>[q.name,q.code] as const)};
-  return {published:false,run:job?publicScreen(job):null,stocks:[...stocks] as (readonly [string,string])[]};
+  const [job, settings] = await Promise.all([readMarketJob().catch(()=>null), readPins()]);
+  return {...composeWatchlist(job,settings.pins), ...settings, run:job ? publicScreen(job) : null};
 }

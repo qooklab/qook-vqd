@@ -55,7 +55,9 @@ export async function POST(req: NextRequest) {
         if(saved.error)throw Error("조회한 시세 저장 실패");
       }
       const {updateResearch} = await import("@/lib/research");
-      const snapshot = await updateResearch(code, body?.force === true);
+      const source = body.source ?? "all";
+      if(!["all","dividend","financial","retirement"].includes(source)) return NextResponse.json({error:"조회 항목 오류"},{status:400});
+      const snapshot = await updateResearch(code, body?.force === true, source);
       return NextResponse.json({ok: true, code, detail: `${snapshot.year}년 기준 · 배당 5년·실제 소각·3년 수익성 평가 ${snapshot.errors.length ? "· 일부 자료 미확인: " + snapshot.errors.join(" / ") : "완료"}`, checkedAt: snapshot.checkedAt}, {headers: {"Cache-Control": "no-store"}});
     }
     if (financialOnly) {

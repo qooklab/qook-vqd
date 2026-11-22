@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {useEffect,useRef,useState} from "react";
 import type {publicScreen} from "@/lib/market-model";
-type Status=ReturnType<typeof publicScreen>;
+type Status=ReturnType<typeof publicScreen> & {tracked:{stocks:[string,string][]; reasons:Record<string,string>}};
 const fmt=(value:number)=>value.toLocaleString("ko-KR");
 export default function MarketScreen(){
   const [data,setData]=useState<Status|null>(null),[error,setError]=useState(""),[active,setActive]=useState(true),[secret,setSecret]=useState(""),[busy,setBusy]=useState(false),[tick,setTick]=useState(0);
@@ -27,11 +27,11 @@ export default function MarketScreen(){
     <section className="screen-policy" aria-labelledby="policy-heading"><div className="section-heading"><h2 id="policy-heading">먼저 기준을 공개합니다.</h2><span className="section-meta">자체 선별 기준 v1</span></div>
       <div className="screen-rules"><span>코스피·코스닥 주권(ST) 보통주</span><span>시가총액 ≥ 1,000억원</span><span>KIS 제공 ROE ≥ 5%</span><span>0 &lt; PER ≤ 15</span><span>0 &lt; PBR ≤ 1.5</span></div>
       <p>ETF·ETN·외국주권(FS)·예탁증서(DR)·스팩·우선주 및 거래정지·정리매매·관리종목은 제외합니다. KONEX는 포함하지 않습니다. ROE·시가총액은 종목 마스터 제공값이며 기업별 재무 기준일이 다를 수 있습니다.</p>
-      <p>조건 통과 종목에 동일한 <strong>PER 10점 + PBR 10점</strong>을 적용합니다. 동점은 시가총액 내림차순·종목코드순으로 정렬합니다. 최대 30개를 선정하며 부족한 수를 임의로 채우지 않습니다. 배당은 후보 선정 후 DART에서 검증합니다.</p>
+      <p>조건 통과 종목에 동일한 <strong>PER 10점 + PBR 10점</strong>을 적용합니다. 동점은 시가총액 내림차순·종목코드순으로 정렬합니다. 고정 종목을 포함한 최대 30개를 추적합니다. 자동 선별은 남은 자리를 순위대로 채웁니다. 배당은 후보 선정 후 DART에서 검증합니다.</p>
     </section>
     {error&&<div className="notice" role="alert"><strong>수집 확인 필요</strong><span>{error}</span></div>}
     {!data&&!error&&<div className="notice" role="status">공식 종목 마스터와 선별 진행률을 불러오는 중입니다.</div>}
-    {data&&<>
+    {data&&<><section><h2>현재 추적 종목 {data.tracked.stocks.length}개</h2><ul>{data.tracked.stocks.map(([name,code])=><li key={code}><Link href={`/stocks/${code}`}>{name}</Link> · {data.tracked.reasons[code]}</li>)}</ul></section>
       <section className="screen-status" aria-labelledby="screen-status-title"><div className="section-heading"><h2 id="screen-status-title">{data.status==="complete"?"전 종목 1차 선별 완료":data.status==="partial"?"일부 미수집 · 잠정 후보":"전 종목 1차 선별 중"}</h2><span className="screen-state">{data.status==="complete"?"COMPLETE":"IN PROGRESS"}</span></div>
         <div className="screen-funnel"><div><small>주권(ST) 종목</small><strong>{fmt(data.stockCount)}</strong></div><span aria-hidden="true">→</span><div><small>규모·ROE 통과</small><strong>{fmt(data.eligible)}</strong></div><span aria-hidden="true">→</span><div><small>시세 확인</small><strong>{fmt(data.collected)}<em>/{fmt(data.eligible)}</em></strong></div><span aria-hidden="true">→</span><div><small>가격조건 통과</small><strong>{fmt(data.candidateCount)}</strong></div></div>
         <progress aria-label="선별 시세 수집 진행률" value={data.collected} max={data.eligible||1}/>
@@ -42,7 +42,7 @@ export default function MarketScreen(){
         <details><summary>모집단과 제외 내역</summary><p>마스터의 6자리 영문·숫자 코드 {fmt(data.masterCount)}개 중 주권(ST) {fmt(data.stockCount)}개를 확인했습니다. 순차 제외 사유별 수는 다음과 같습니다.</p><ul>{Object.entries(data.exclusions).map(([reason,count])=><li key={reason}>{reason}: {fmt(count)}</li>)}</ul></details>
         {data.failures.length>0&&<details><summary>미수집 종목 {data.failed}개 확인</summary>{data.failures.map(f=><p key={f.code}>{f.code} · {f.error}</p>)}{data.failed>20&&<p>처음 20개만 표시합니다.</p>}</details>}
       </section>
-      <section className="screen-results" aria-labelledby="candidate-heading"><div className="section-heading"><h2 id="candidate-heading">{data.status==="complete"?"1차 선별 후보":"잠정 후보"} <span className="count-badge">{data.selected.length}</span></h2><Link className="text-link" href="/">관찰 목록과 상세 평가 →</Link></div><p>이 점수는 20점 기준의 1차 가격 점수입니다. 기존 100점 DART 상세 평가와 구분합니다. 배당·재무 검증을 마친 매수 추천 목록을 뜻하지 않습니다.</p>
+      <section className="screen-results" aria-labelledby="candidate-heading"><div className="section-heading"><h2 id="candidate-heading">{data.status==="complete"?"자동 선별 순위":"잠정 후보"} <span className="count-badge">{data.selected.length}</span></h2><Link className="text-link" href="/">관찰 목록과 상세 평가 →</Link></div><p>이 점수는 20점 기준의 1차 가격 점수입니다. 기존 100점 DART 상세 평가와 구분합니다. 배당·재무 검증을 마친 매수 추천 목록을 뜻하지 않습니다.</p>
         <div className="screen-table-wrap"><table className="screen-table"><caption className="sr-only">코스피·코스닥 공통 기준 선별 후보. 미완료 시 잠정 결과.</caption><thead><tr><th>순서</th><th>종목</th><th>시장</th><th>PER</th><th>PBR</th><th>ROE</th><th>시가총액(억)</th><th>1차 점수</th></tr></thead><tbody>{data.selected.map((s,i)=><tr key={s.code}><td>{String(i+1).padStart(2,"0")}</td><th scope="row">{data.status==="complete"?<Link href={`/stocks/${s.code}`}>{s.name} ↗</Link>:s.name}<small>{s.code}</small></th><td>{s.market}</td><td>{s.per?.toFixed(2)}</td><td>{s.pbr?.toFixed(2)}</td><td>{s.roe.toFixed(2)}%</td><td>{fmt(s.cap)}</td><td><strong>{s.screenScore}</strong> /20</td></tr>)}</tbody></table></div>
         {data.selected.length===0&&<p className="empty-state">아직 조건을 통과한 후보가 없습니다. 수집 진행률과 제외 내역을 확인하세요.</p>}
       </section>
