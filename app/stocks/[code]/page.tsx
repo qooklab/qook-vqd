@@ -22,20 +22,17 @@ export default async function Detail({
   const found = await resolveStock(code);
   if (!found) notFound();
   const client = db();
-  const response = client
-    ? await client
-        .from("stock_latest")
-        .select("*")
-        .eq("code", code)
-        .maybeSingle()
-    : null;
   let researchError = "";
-  let snapshot = await readResearch(code).catch((error: unknown) => {
-    researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
-    return null;
-  });
-  const {watchlist} = await import("@/lib/market-screen");
-  const isWatched=(await watchlist()).stocks.some(s=>s[1]===code);
+  const [response, storedResearch, universe] = await Promise.all([
+    client ? client.from("stock_latest").select("*").eq("code", code).maybeSingle() : null,
+    readResearch(code).catch((error: unknown) => {
+      researchError = error instanceof Error ? error.message : "평가 근거 조회 실패";
+      return null;
+    }),
+    import("@/lib/market-screen").then(({watchlist}) => watchlist()),
+  ]);
+  let snapshot = storedResearch;
+  const isWatched = universe.stocks.some(stock => stock[1] === code);
   if (isWatched && response?.data && !researchError && !researchFresh(snapshot)) {
     try { snapshot = await updateResearch(code); }
     catch (error) { researchError = error instanceof Error ? error.message : "추가 평가 조회 실패"; }
@@ -128,7 +125,6 @@ export default async function Detail({
           </div>
         </div>
         <StockChartPanel key={code} name={found[0]} code={code} entry={raw.buy_price ?? null} />
-        <StockRefresh code={code}/>
         <section className="detail-section">
           <div className="section-heading">
             <div>
@@ -250,6 +246,7 @@ export default async function Detail({
               })
             : "수집 대기"}
         </div>
+        <StockRefresh code={code}/>
         <Footer />
       </main>
     </div>

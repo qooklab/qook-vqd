@@ -8,16 +8,15 @@ const PriceChart = dynamic(() => import("./price-chart"), {
 });
 
 export default function StockChartPanel({code,name,entry}:{code:string;name:string;entry:number|null}) {
-  const [open,setOpen] = useState(false);
-  const [visited,setVisited] = useState(false);
+  const [open,setOpen] = useState(true);
   return <div className="stock-chart-panel">
     <button type="button" aria-expanded={open} aria-controls="stock-price-plot"
-      onClick={()=>{setVisited(true);setOpen(!open);}}>
+      onClick={()=>setOpen(value=>!value)}>
       <span>{name} 주가 차트 {open?"접기":"보기"}</span>
       <span aria-hidden="true">{open?"−":"+"}</span>
     </button>
     <div id="stock-price-plot" hidden={!open}>
-      {visited && <PriceChart code={code} entry={entry}/>}
+      <PriceChart code={code} entry={entry}/>
     </div>
   </div>;
 }
