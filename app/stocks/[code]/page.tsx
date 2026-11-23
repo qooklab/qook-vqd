@@ -1,5 +1,4 @@
-import SoxCard from "../../sox-card";
-import PriceChart from "../../price-chart";
+import StockChartPanel from "../../stock-chart-panel";
 import {RememberStock} from "../../recent-views";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -128,8 +127,7 @@ export default async function Detail({
             </div>
           </div>
         </div>
-        <PriceChart key={code} code={code} entry={raw.buy_price ?? null} />
-        <SoxCard />
+        <StockChartPanel key={code} name={found[0]} code={code} entry={raw.buy_price ?? null} />
         <StockRefresh code={code}/>
         <section className="detail-section">
           <div className="section-heading">
