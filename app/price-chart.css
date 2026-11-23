@@ -1,0 +1,4 @@
+.price-history{padding:clamp(14px,3vw,28px);margin:18px 0;border:1px solid #cfd5d0;border-radius:12px;background:#fafbf9;color:#202821;min-width:0}
+.price-history h2{margin:0 0 12px}.chart-controls,.chart-controls div{display:flex;flex-wrap:wrap;gap:6px}.chart-controls{justify-content:space-between}
+.price-history button{min-height:40px;border:1px solid #b9c4bc;background:white;color:#294333;border-radius:6px;padding:6px 12px;cursor:pointer}
+.price-history button[aria-pressed=true]{background:#284d39;color:white}.price-history svg,.price-history input{display:block;width:100%}.price-history svg text{fill:#404940;font:12px system-ui}.price-history p{line-height:1.55;margin:10px 0}.price-history input{accent-color:#315a41}
