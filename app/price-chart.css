@@ -6,3 +6,11 @@
 .price-history input.stop-price {display:inline-block;width:8em;max-width:100%;min-height:40px;padding:4px 8px;}
 
 .chart-controls{justify-content:flex-start;align-items:center;gap:8px 16px}.price-history button{min-height:44px}
+
+.price-history{font-size:.875rem;padding:clamp(12px,2vw,20px)}
+.price-history h2{font-size:1.05rem}
+.price-history button{font:inherit;font-size:.8125rem;min-height:36px;padding:5px 10px}
+.price-history button[aria-pressed=true]{background:#f8e9e6;border-color:#dcaea6;color:#793a33}
+.chart-drawing{width:100%;max-width:780px;margin:12px auto}
+.chart-drawing svg text{font-size:10px}
+@media(max-width:600px){.price-history button{min-height:42px}.chart-drawing svg text{font-size:15px}.chart-controls{gap:6px 10px}}

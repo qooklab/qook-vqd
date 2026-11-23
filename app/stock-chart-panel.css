@@ -7,3 +7,8 @@
 .chart-switch button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--muted);font:inherit;padding:12px 18px;min-height:44px;cursor:pointer}
 .chart-switch button[aria-pressed=true]{border-color:var(--accent);color:var(--ink);font-weight:650}
 .tv-stock-chart{height:clamp(360px,62vh,640px);width:100%;margin:16px 0}
+
+.tv-stock-chart{height:clamp(400px,65svh,680px);min-width:0}
+.tv-stock-chart .tradingview-widget-container,.tv-stock-chart .tradingview-widget-container__widget,.tv-stock-chart iframe{display:block;width:100%!important;height:100%!important;min-height:inherit;border:0}
+.chart-switch button{font-size:.875rem;border-bottom-width:2px}
+@media(max-width:600px){.tv-stock-chart{height:clamp(360px,62svh,530px);margin:10px 0}}

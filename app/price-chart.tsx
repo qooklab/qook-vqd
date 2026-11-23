@@ -69,20 +69,20 @@ export default function PriceChart({code,entry}:{code:string;entry:number|null})
       </div>
       {showMA&&<p>{averages.map(([key,n,color])=><span key={key} style={{marginRight:12,color}}>{n}{unit} 평균 {selectedValues?.[key]!=null?fmt(Math.round(selectedValues[key]!)):"—"}</span>)}</p>}
       {showBand&&<p>볼린저밴드(20봉) · 하단 {selectedValues?.lower!=null?fmt(Math.round(selectedValues.lower)):"—"} · 상단 {selectedValues?.upper!=null?fmt(Math.round(selectedValues.upper)):"—"}</p>}
-      <svg viewBox="0 0 530 220" role="img" aria-label="수정주가 캔들과 거래량" onPointerDown={e=>{
+      <div className="chart-drawing"><svg viewBox="0 0 530 220" role="img" aria-label="수정주가 캔들과 거래량" onPointerDown={e=>{
         const svg=e.currentTarget,point=svg.createSVGPoint();point.x=e.clientX;point.y=e.clientY;
         const matrix=svg.getScreenCTM();if(matrix)select(bars[Math.min(bars.length-1,Math.max(0,Math.floor((point.matrixTransform(matrix.inverse()).x-8)/step)))].date);
       }}>
         {[ceil,(floor+ceil)/2,floor].map((v,i)=><g key={i}><line x1="8" x2="449" y1={y(v)} y2={y(v)} stroke="#d9deda"/><text x="453" y={y(v)+4}>{fmt(Math.round(v))}</text></g>)}
         {showBand&&<polygon fill="#8595a9" opacity=".22" points={points("upper")+" "+points("lower",true)}/>}
-        {bars.map((b,i)=>{const color=b.close>=b.open?"#b43c39":"#346bac";return <g key={b.date} fill={color}><line x1={x(i)} x2={x(i)} y1={y(b.high)} y2={y(b.low)} stroke={color}/><rect x={x(i)-step*.32} y={Math.min(y(b.open),y(b.close))} width={step*.64} height={Math.max(1,Math.abs(y(b.open)-y(b.close)))}/>{b.volume!==null&&<rect x={x(i)-step*.32} y={199-b.volume/maxVol*30} width={step*.64} height={b.volume/maxVol*30} opacity=".65"/>}</g>})}
+        {bars.map((b,i)=>{const color=b.close>=b.open?"#b43c39":"#346bac";return <g key={b.date} fill={color}><line x1={x(i)} x2={x(i)} y1={y(b.high)} y2={y(b.low)} stroke={color}/><rect x={x(i)-Math.min(step*.32,9)} y={Math.min(y(b.open),y(b.close))} width={Math.min(step*.64,18)} height={Math.max(1,Math.abs(y(b.open)-y(b.close)))}/>{b.volume!==null&&<rect x={x(i)-Math.min(step*.32,9)} y={199-b.volume/maxVol*30} width={Math.min(step*.64,18)} height={b.volume/maxVol*30} opacity=".65"/>}</g>})}
         {showMA&&averages.map(([key,,color])=><polyline key={key} points={points(key)} stroke={color} fill="none" strokeWidth="1.7"/>)}
         {stop!==null&&<line x1="8" x2="449" y1={y(stop)} y2={y(stop)} stroke="#b43c39" strokeDasharray="7 3"/>}
         {model!==null&&<line x1="8" x2="449" y1={y(model)} y2={y(model)} stroke="#396448" strokeWidth="1.6" strokeDasharray="5 3"/>}
         <line x1={x(bars.indexOf(active))} x2={x(bars.indexOf(active))} y1="12" y2="199" stroke="#495147" strokeDasharray="2 4"/>
         <text x="8" y="216">{dateLabel(bars[0].date)}</text><text x="448" y="216" textAnchor="end">{dateLabel(bars[bars.length-1].date)}</text>
       </svg>
-      <ChartScrubber label="확인할 봉 선택" start={x(0)/530} end={x(bars.length-1)/530} max={bars.length-1} value={bars.indexOf(active)} onSelect={i=>select(bars[i].date)}/>
+      <ChartScrubber label="확인할 봉 선택" start={x(0)/530} end={x(bars.length-1)/530} max={bars.length-1} value={bars.indexOf(active)} onSelect={i=>select(bars[i].date)}/></div>
       <p>점선 · 현재 모형 매수기준 {model===null?"미산정":fmt(model)+"원"}</p>
       <small>한국투자증권 · KRX 수정주가 · 조회 {new Date(data.checkedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>
     </>}

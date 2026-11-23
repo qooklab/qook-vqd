@@ -22,12 +22,12 @@ function TradingChart({code}:{code:string}) {
     container.append(widget,script);
     return ()=>container.replaceChildren();
   },[code]);
-  return <div className="tradingview-widget-container tv-stock-chart" ref={host}/>;
+  return <div className="tv-stock-chart"><div className="tradingview-widget-container" ref={host}/></div>;
 }
 
 export default function StockChartPanel({code,name,entry}:{code:string;name:string;entry:number|null}) {
   const [open,setOpen] = useState(true);
-  const [view,setView]=useState("basic");
+  const [view,setView]=useState("tv");
   return <div className="stock-chart-panel">
     <button type="button" aria-expanded={open} aria-controls="stock-price-plot"
       onClick={()=>setOpen(value=>!value)}>
@@ -36,10 +36,10 @@ export default function StockChartPanel({code,name,entry}:{code:string;name:stri
     </button>
     <div id="stock-price-plot" hidden={!open}>
       <div className="chart-switch" role="group" aria-label="차트 선택">
-        <button aria-pressed={view==="basic"} onClick={()=>setView("basic")}>기본 차트</button>
         <button aria-pressed={view==="tv"} onClick={()=>setView("tv")}>TradingView</button>
+        <button aria-pressed={view==="basic"} onClick={()=>setView("basic")}>기본 차트</button>
       </div>
-      <div hidden={view!=="basic"}><PriceChart code={code} entry={entry}/></div>
+      {view==="basic" && <PriceChart code={code} entry={entry}/>}
       {view==="tv" && <><TradingChart code={code}/>
       <p>위젯에서 시세가 표시되지 않으면 기본 차트를 선택하거나 TradingView에서 열어 주세요.</p>
       <a className="text-link" href={`https://www.tradingview.com/chart/?symbol=KRX%3A${encodeURIComponent(code)}`} target="_blank" rel="noopener noreferrer">TradingView에서 {name} 차트 열기 ↗</a></>}
