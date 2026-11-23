@@ -21,3 +21,12 @@
 .coverage-grid div {display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px;}
 .coverage-grid progress {grid-column:1/-1;}
 @media(max-width:740px){.pipeline-flow{grid-template-columns:1fr;gap:8px;}.pipeline-flow li{gap:7px;border-top:0;border-left:4px solid;}.pipeline-flow a,.pipeline details a{display:inline-block;padding:7px 0;}.pipeline header a{padding:8px 0;}}
+
+.flow-map {margin:24px 0 18px;overflow:hidden;border-radius:18px;background:linear-gradient(110deg,#152a29,#253b36 58%,#1c3032);color:#f0f1e8;}
+.flow-map canvas {display:block;width:100%;height:clamp(108px,16vw,190px);}
+.flow-labels {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));text-align:center;padding:0 0 clamp(16px,2vw,30px);}
+.flow-labels a {color:inherit;text-decoration:none;border-radius:5px;}
+.flow-labels a:focus-visible {outline:2px solid #efce95;outline-offset:-3px;}
+.flow-labels span {display:block;color:#c5d6cc;font-size:clamp(.72rem,1.3vw,.95rem);}
+.flow-labels strong {display:block;margin-top:4px;font:500 clamp(1.4rem,3.5vw,3rem)/1.2 Georgia,serif;font-variant-numeric:tabular-nums;}
+.flow-labels small {font:400 .7rem system-ui;margin-left:.25em;}

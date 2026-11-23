@@ -1,3 +1,4 @@
+import FlowCanvas from "./flow-canvas";
 import Link from "next/link";
 import type {watchlist} from "@/lib/market-screen";
 import {SCREEN_POLICY as policy} from "@/lib/market-model";
@@ -16,7 +17,15 @@ export default function Pipeline({universe,rows,available}:{
   const states={running:"수집 중",partial:"일부 수집",complete:"선별 완료"};
   return <section className="pipeline" aria-labelledby="pipeline-title">
     <header><div><h1 id="pipeline-title">종목 리서치 대시보드</h1><p>{run?states[run.status]+" · 종목 목록 기준 "+date(run.sourceAt):"시장 수집 기록 대기"}</p></div><Link href="/manage">데이터 관리 ↗</Link></header>
-    <ol className="pipeline-flow">
+    <div className="flow-map">
+      <FlowCanvas/>
+      <div className="flow-labels">
+        <a href="/market"><span>시장 데이터 수집</span><strong>{number(run?.collected)}<small>종목</small></strong></a>
+        <a href="/screen"><span>선별 기준 통과</span><strong>{number(run?.candidateCount)}<small>종목</small></strong></a>
+        <a href="#universe-title"><span>상세 평가 완료</span><strong>{available?assessed:"—"}<small>종목</small></strong></a>
+      </div>
+    </div>
+    <details><summary>단계별 데이터와 선별 기준</summary><ol className="pipeline-flow">
       <li><h2>시장 데이터 수집</h2><strong>{number(run?.collected)}<small>종목 시세 확보</small></strong>
         <progress aria-label="시세 확보율" max={run?.eligible||1} value={run?.collected??0}/>
         <p>상장 주권 {number(run?.stockCount)}개 중 시세 조회 대상 {number(run?.eligible)}개 · 실패 {number(run?.failed)}개</p>
@@ -29,7 +38,7 @@ export default function Pipeline({universe,rows,available}:{
         <progress aria-label="상세 평가 완료율" max={rows.length||1} value={available?assessed:0}/>
         <p>{available?`일부 평가 ${partial}개 · 미평가 ${rows.length-assessed-partial}개`:"평가 현황 조회 대기"}</p>
         <p>KIS 시세와 DART의 5년 배당·자사주 소각·3년 재무 자료로 10개 항목을 평가합니다.</p><Link href="/methodology">100점 평가 기준 →</Link></li>
-    </ol>
+    </ol></details>
     <details><summary>평가 항목별 데이터 확보 현황</summary><div className="coverage-grid">{criteria.map(([label,points],i)=>{
       const count=rows.filter(r=>r.vals[i]!=null).length;
       return <div key={label}><span>{label} · {points}점</span><b>{available?count:"—"} / {rows.length}</b><progress aria-label={label+" 평가 종목 수"} value={available?count:0} max={rows.length||1}/></div>;

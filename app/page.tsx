@@ -1,4 +1,3 @@
-import SoxCard from "./sox-card";
 import Pipeline from "./pipeline";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -40,7 +39,6 @@ export default async function Home() {
       <Header />
       <main id="main-content" className="dashboard">
         <Pipeline universe={universe} rows={rows} available={!!client&&!result?.error&&!researchError} />
-        <SoxCard />
         {pending.length > 0 && !researchError && process.env.DART_API_KEY && <ResearchProgress remaining={pending.length} />}
         {researchError && <div className="notice" role="status"><strong>평가 근거 확인 필요</strong><span>{researchError}</span></div>}
         {!client && (

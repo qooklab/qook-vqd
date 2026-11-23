@@ -1,3 +1,4 @@
+import SoxCard from "../../sox-card";
 import PriceChart from "../../price-chart";
 import {RememberStock} from "../../recent-views";
 import { notFound } from "next/navigation";
@@ -128,6 +129,7 @@ export default async function Detail({
           </div>
         </div>
         <PriceChart key={code} code={code} entry={raw.buy_price ?? null} />
+        <SoxCard />
         <StockRefresh code={code}/>
         <section className="detail-section">
           <div className="section-heading">
