@@ -56,13 +56,15 @@ export default function PriceChart({code,entry}:{code:string;entry:number|null})
   function choosePeriod(value:string){if(value!==period){setData(null);setPeriod(value);}}
   return <section className="price-history"><h2>주가 차트</h2>
     <div className="chart-controls"><div>{[["D","일봉"],["W","주봉"],["M","월봉"]].map(([k,label])=><button key={k} aria-pressed={period===k} onClick={()=>choosePeriod(k)}>{label}</button>)}</div>
-    <div>{[1,3,6,12].map(n=><button key={n} aria-pressed={months===n} onClick={()=>{select(null);setMonths(n);}}>{n===12?"1년":n+"개월"}</button>)}</div></div>
+    <div role="group" aria-label="보조지표">
+        <button aria-pressed={showMA} onClick={()=>setMA(!showMA)}>이동평균</button>
+        <button aria-pressed={showBand} onClick={()=>setBand(!showBand)}>볼린저밴드</button>
+    </div><div>{[1,3,6,12].map(n=><button key={n} aria-pressed={months===n} onClick={()=>{select(null);setMonths(n);}}>{n===12?"1년":n+"개월"}</button>)}</div></div>
     {error?<p role="status">시세 조회 실패 <button onClick={()=>retry(attempt+1)}>다시 조회</button></p>:!data?<p role="status">주가 이력을 불러오는 중…</p>:!active?<p>이 기간에 표시할 시세가 없습니다.</p>:<>
       <p><strong>{dateLabel(active.date)} · {fmt(active.close)}원</strong> {prev&&<span>{period==="D"?"전일":period==="W"?"전주":"전월"} 대비 {((active.close/prev.close-1)*100).toFixed(2)}%</span>}</p>
       <p>시가 {fmt(active.open)} · 고가 {fmt(active.high)} · 저가 {fmt(active.low)} · 거래량 {active.volume===null?"미제공":fmt(active.volume)+"주"}</p>
       <div className="chart-controls">
-        <button aria-pressed={showMA} onClick={()=>setMA(!showMA)}>이동평균</button>
-        <button aria-pressed={showBand} onClick={()=>setBand(!showBand)}>볼린저밴드</button>
+
         <label>내 손절선(원) <input className="stop-price" type="number" min="1" placeholder="미설정" value={stopText} onChange={e=>{setStop(e.target.value);try{localStorage.setItem("vqd-stop-"+code,e.target.value);}catch{}}}/></label>
       </div>
       {showMA&&<p>{averages.map(([key,n,color])=><span key={key} style={{marginRight:12,color}}>{n}{unit} 평균 {selectedValues?.[key]!=null?fmt(Math.round(selectedValues[key]!)):"—"}</span>)}</p>}
