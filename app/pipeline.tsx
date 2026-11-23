@@ -25,6 +25,11 @@ export default function Pipeline({universe,rows,available}:{
         <a href="#universe-title"><span>상세 평가 완료</span><strong>{available?assessed:"—"}<small>종목</small></strong></a>
       </div>
     </div>
+    <div className="research-sources">
+      <article><h2><span>KIS</span>시장 시세</h2><p>한국투자증권 종목 목록에서 시가총액과 ROE를 읽고, 시세 API로 현재가·PER·PBR·거래량을 수집합니다. 종목 상세에서 차트를 열면 해당 종목의 일봉·주봉·월봉을 조회할 수 있습니다.</p></article>
+      <article><h2><span>DART</span>기업 공시</h2><p>전자공시 자료에서 최근 5년 배당 이력과 자사주 소각, 최근 3년 재무 자료를 확인합니다. 이 자료로 주주환원과 이익의 안정성·성장성을 평가합니다.</p></article>
+      <article><h2><span>MODEL</span>100점 평가 기준</h2><p>PER·PBR·안전마진 35점, 배당·자사주 소각 30점, 이익·재무·경쟁력 35점으로 평가합니다.</p><Link href="/methodology">항목별 배점과 산식 보기 →</Link></article>
+    </div>
     <details><summary>단계별 데이터와 선별 기준</summary><ol className="pipeline-flow">
       <li><h2>시장 데이터 수집</h2><strong>{number(run?.collected)}<small>종목 시세 확보</small></strong>
         <progress aria-label="시세 확보율" max={run?.eligible||1} value={run?.collected??0}/>

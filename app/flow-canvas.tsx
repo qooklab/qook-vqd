@@ -10,6 +10,10 @@ export default function FlowCanvas(){
     if(!ctx)return;
     const motion=window.matchMedia("(prefers-reduced-motion: reduce)");
     let frame=0,elapsed=0,previous=0,visible=true;
+    let px=.5,py=.5;
+    function follow(e:PointerEvent){if(!canvas||motion.matches)return;const box=canvas.getBoundingClientRect();px=(e.clientX-box.left)/box.width;py=(e.clientY-box.top)/box.height;}
+    function reset(){px=.5;py=.5;}
+    canvas.addEventListener("pointermove",follow);canvas.addEventListener("pointerleave",reset);
     function paint(){
       if(!canvas||!ctx)return;
       const w=canvas.clientWidth,h=canvas.clientHeight;
@@ -19,6 +23,17 @@ export default function FlowCanvas(){
       }
       ctx.setTransform(ratio,0,0,ratio,0,0);
       ctx.clearRect(0,0,w,h);
+      const light=ctx.createRadialGradient(px*w,py*h,0,px*w,py*h,w*.54);
+      light.addColorStop(0,"rgba(80,216,187,.27)");light.addColorStop(1,"transparent");ctx.fillStyle=light;ctx.fillRect(0,0,w,h);
+      for(let strand=0;strand<28;strand++){
+        ctx.beginPath();
+        for(let step=0;step<=64;step++){
+          const t=step/64;
+          const y=h*(.52+.2*Math.sin(t*8+strand*.11+elapsed/6200+px)+.14*Math.cos(t*5+strand*.19)+(py-.5)*.15);
+          if(step===0)ctx.moveTo(0,y);else ctx.lineTo(t*w,y);
+        }
+        ctx.strokeStyle=strand<16?"rgba(114,231,207,.23)":"rgba(239,203,148,.19)";ctx.stroke();
+      }
       const cy=h*.55,r=Math.min(w/12,h*.32),nodes=[w/6,w/2,5*w/6];
       function dot(x:number,y:number,size:number,color:string){
         ctx!.fillStyle=color;ctx!.beginPath();ctx!.arc(x,y,size,0,2*Math.PI);ctx!.fill();
@@ -46,16 +61,16 @@ export default function FlowCanvas(){
     function tick(now:number){
       if(previous)elapsed+=Math.min(now-previous,80);
       previous=now;paint();
-      if(elapsed<4200)frame=requestAnimationFrame(tick);
+      frame=requestAnimationFrame(tick);
     }
     function sync(){
       cancelAnimationFrame(frame);previous=0;paint();
-      if(visible&&!document.hidden&&!motion.matches&&elapsed<4200)frame=requestAnimationFrame(tick);
+      if(visible&&!document.hidden&&!motion.matches)frame=requestAnimationFrame(tick);
     }
     const resize=new ResizeObserver(sync);resize.observe(canvas);
     const observer=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;sync();});observer.observe(canvas);
     motion.addEventListener("change",sync);document.addEventListener("visibilitychange",sync);sync();
-    return ()=>{cancelAnimationFrame(frame);resize.disconnect();observer.disconnect();motion.removeEventListener("change",sync);document.removeEventListener("visibilitychange",sync);};
+    return ()=>{cancelAnimationFrame(frame);canvas.removeEventListener("pointermove",follow);canvas.removeEventListener("pointerleave",reset);resize.disconnect();observer.disconnect();motion.removeEventListener("change",sync);document.removeEventListener("visibilitychange",sync);};
   },[]);
   return <canvas aria-hidden="true" ref={ref}/>;
 }
