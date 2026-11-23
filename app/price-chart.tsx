@@ -1,4 +1,5 @@
 "use client";
+import ChartScrubber from "./chart-scrubber";
 import {useEffect,useMemo,useState} from "react";
 import type {Candle} from "@/lib/kis";
 import "./price-chart.css";
@@ -79,7 +80,7 @@ export default function PriceChart({code,entry}:{code:string;entry:number|null})
         <line x1={x(bars.indexOf(active))} x2={x(bars.indexOf(active))} y1="12" y2="199" stroke="#495147" strokeDasharray="2 4"/>
         <text x="8" y="216">{dateLabel(bars[0].date)}</text><text x="448" y="216" textAnchor="end">{dateLabel(bars[bars.length-1].date)}</text>
       </svg>
-      <input aria-label="확인할 봉 선택" type="range" min="0" max={bars.length-1} value={bars.indexOf(active)} onChange={e=>select(bars[Number(e.target.value)].date)}/>
+      <ChartScrubber label="확인할 봉 선택" start={x(0)/530} end={x(bars.length-1)/530} max={bars.length-1} value={bars.indexOf(active)} onSelect={i=>select(bars[i].date)}/>
       <p>점선 · 현재 모형 매수기준 {model===null?"미산정":fmt(model)+"원"}</p>
       <small>한국투자증권 · KRX 수정주가 · 조회 {new Date(data.checkedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>
     </>}
