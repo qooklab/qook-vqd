@@ -1,0 +1,23 @@
+.price-history input.chart-scrubber {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.chart-scrubber::-webkit-slider-runnable-track {height:4px; background:#b6c6bc; border-radius:2px;}
+.chart-scrubber::-moz-range-track {height:4px; background:#b6c6bc; border-radius:2px;}
+.chart-scrubber::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none; width:16px; height:16px; margin-top:-6px;
+  box-sizing:border-box; border:0; border-radius:50%; background:#315a41;
+}
+.chart-scrubber::-moz-range-thumb {
+  width:16px; height:16px; box-sizing:border-box; border:0; border-radius:50%; background:#315a41;
+}

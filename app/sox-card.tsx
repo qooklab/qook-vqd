@@ -1,4 +1,5 @@
 "use client";
+import ChartScrubber from "./chart-scrubber";
 import {useEffect,useRef,useState} from "react";
 const source="https://www.tradingview.com/symbols/NASDAQ-SOX/";
 type Point={date:string;value:number};
@@ -36,10 +37,10 @@ export default function SoxCard(){
     <div className="chart-controls"><div>{periods.map(([n])=><button key={n} aria-pressed={period===n} onClick={()=>{setPeriod(n);setPick(null);}}>{n>=12?n/12+"년":n+"개월"}</button>)}</div></div>
     {!last?<><div ref={host} style={{height:360,marginTop:12}}/><a href={source} target="_blank" rel="noopener nofollow">SOX 지수 차트 · TradingView</a></>:<>
       <p><strong>{fmt(last.value)}</strong> · {last.date} 종가 · 전일 대비 {prev?percent(last.value,prev.value):"—"}</p>
-      <svg role="img" aria-label="선택 기간 SOX 종가" viewBox="0 0 500 160" onPointerDown={e=>{const r=e.currentTarget.getBoundingClientRect();setPick(Math.max(0,Math.min(visible.length-1,Math.round((e.clientX-r.left)/r.width*(visible.length-1)))));}}>
+      <svg role="img" aria-label="선택 기간 SOX 종가" viewBox="0 0 500 160" onPointerDown={e=>{const r=e.currentTarget.getBoundingClientRect();setPick(Math.max(0,Math.min(visible.length-1,Math.round((((e.clientX-r.left)/r.width*500-5)/490)*(visible.length-1)))));}}>
         <polyline fill="none" stroke="#934547" strokeWidth="2" points={visible.map((p,i)=>(5+490*i/Math.max(1,visible.length-1))+","+(150-140*(p.value-low)/(high-low||1))).join(" ")}/>
       </svg>
-      <input type="range" aria-label="SOX 기준일 선택" min="0" max={visible.length-1} value={pos} onChange={e=>setPick(Number(e.target.value))}/>
+      <ChartScrubber label="SOX 기준일 선택" start={5/500} end={visible.length>1?495/500:5/500} max={visible.length-1} value={pos} onSelect={i=>setPick(i)}/>
       <p>{visible[pos].date} · {fmt(visible[pos].value)}</p><p>기간 최고 {fmt(high)} · 최저 {fmt(low)} · 기간 등락률 {percent(last.value,visible[0].value)} · 20거래일 평균 대비 {avg?percent(last.value,avg):"—"}</p>
       <button onClick={()=>{setData([]);setMessage("");}}>공식 위젯 보기</button>
     </>}
