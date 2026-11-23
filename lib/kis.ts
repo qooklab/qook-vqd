@@ -79,3 +79,39 @@ export async function quote(code:string){
  return {price:Number(x.stck_prpr)||null,per:Number(x.per)||null,pbr:Number(x.pbr)||null,volume:Number(x.acml_vol)||null};
 }
 
+
+export type Candle = {date:string;open:number;high:number;low:number;close:number;volume:number|null};
+export async function chartHistory(code:string, period:string) {
+  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  const start=new Date(today+"T00:00:00Z");
+  start.setUTCDate(start.getUTCDate()-370);
+  const first=start.toISOString().slice(0,10).replace(/-/g,"");
+  let end=today.replace(/-/g,"");
+  const bars=new Map<string,Candle>();
+  const authorization="Bearer "+await accessToken();
+  for(let page=0;page<4 && end>=first;page++){
+    if(page) await wait(350);
+    const url=new URL(BASE+"/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice");
+    url.search=new URLSearchParams({FID_COND_MRKT_DIV_CODE:"J",FID_INPUT_ISCD:code,FID_INPUT_DATE_1:first,FID_INPUT_DATE_2:end,FID_PERIOD_DIV_CODE:period,FID_ORG_ADJ_PRC:"0"}).toString();
+    const response=await fetch(url,{headers:{authorization,appkey:process.env.KIS_APP_KEY!,appsecret:process.env.KIS_APP_SECRET!,tr_id:"FHKST03010100"},cache:"no-store",signal:AbortSignal.timeout(8000)});
+    if(!response.ok) return apiError(response,"quote");
+    const data=await response.json();
+    if(data.rt_cd!=="0" || !Array.isArray(data.output2)) throw Error("기간별 시세 조회 실패");
+    const dates:string[]=[];
+    for(const row of data.output2){
+      const date=String(row.stck_bsop_date??"");
+      if(!/^\d{8}$/.test(date)||date>end) continue;
+      dates.push(date);
+      const [open,high,low,close]=[row.stck_oprc,row.stck_hgpr,row.stck_lwpr,row.stck_clpr].map(Number);
+      if(date<first||![open,high,low,close].every(v=>Number.isFinite(v)&&v>0)||high<Math.max(open,close)||low>Math.min(open,close)) continue;
+      const volume=row.acml_vol==null||String(row.acml_vol).trim()===""?null:Number(row.acml_vol);
+      bars.set(date,{date,open,high,low,close,volume:volume!==null && Number.isFinite(volume)&&volume>=0?volume:null});
+    }
+    if(dates.length<100) break;
+    const earliest=dates.sort()[0];
+    const day=new Date(earliest.slice(0,4)+"-"+earliest.slice(4,6)+"-"+earliest.slice(6)+"T00:00:00Z");
+    day.setUTCDate(day.getUTCDate()-1);
+    end=day.toISOString().slice(0,10).replace(/-/g,"");
+  }
+  return {bars:Array.from(bars.values()).sort((a,b)=>a.date.localeCompare(b.date)),checkedAt:new Date().toISOString(),today};
+}

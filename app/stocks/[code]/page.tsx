@@ -1,3 +1,4 @@
+import PriceChart from "../../price-chart";
 import {RememberStock} from "../../recent-views";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -126,6 +127,7 @@ export default async function Detail({
             </div>
           </div>
         </div>
+        <PriceChart key={code} code={code} entry={raw.buy_price ?? null} />
         <StockRefresh code={code}/>
         <section className="detail-section">
           <div className="section-heading">
