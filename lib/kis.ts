@@ -84,7 +84,7 @@ export type Candle = {date:string;open:number;high:number;low:number;close:numbe
 export async function chartHistory(code:string, period:string) {
   const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   const start=new Date(today+"T00:00:00Z");
-  start.setUTCDate(start.getUTCDate()-370);
+  start.setUTCDate(start.getUTCDate()-(period==='M'?2250:period==='W'?820:480));
   const first=start.toISOString().slice(0,10).replace(/-/g,"");
   let end=today.replace(/-/g,"");
   const bars=new Map<string,Candle>();
