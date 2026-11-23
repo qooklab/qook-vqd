@@ -42,9 +42,22 @@ button,input,select{font-family:inherit}
 .research-sources p{font-size:.94rem;margin:.65em 0}
 @media(max-width:680px){.research-sources{grid-template-columns:1fr;gap:0}}
 
-.loading-view .loading-stats :is(span,b),.loading-view .loading-rows span{
-  background:linear-gradient(105deg,#e1dfd9 25%,#f7f6f2 47%,#e1dfd9 68%);
-  background-size:240% 100%;animation:research-shimmer 1.65s ease-in-out infinite;
+.loading-view .loading-stats :is(span,b), .loading-view .loading-rows span {
+  position: relative;
+  overflow: hidden;
+  background: #e1dfd9;
 }
-@keyframes research-shimmer{from{background-position:100% 0}to{background-position:0 0}}
-@media(prefers-reduced-motion:reduce){.loading-view .loading-stats :is(span,b),.loading-view .loading-rows span{animation:none}}
+.loading-view .loading-stats :is(span,b)::after, .loading-view .loading-rows span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 10%, rgba(255,255,255,.58) 50%, transparent 90%);
+  animation: research-shimmer 2s linear infinite;
+}
+@keyframes research-shimmer {
+  from { transform: translate3d(-100%,0,0); }
+  to { transform: translate3d(100%,0,0); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .loading-view .loading-stats :is(span,b)::after, .loading-view .loading-rows span::after { display:none; }
+}

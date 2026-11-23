@@ -26,7 +26,7 @@ export class InteractionSound {
       oscillator.frequency.setValueAtTime(frequency, start);
       oscillator.frequency.exponentialRampToValueAtTime(frequency * .72, start + duration);
       gain.gain.setValueAtTime(.0001, start);
-      gain.gain.exponentialRampToValueAtTime(cue === "hover" ? .012 : .035, start + .004);
+      gain.gain.exponentialRampToValueAtTime(cue === "hover" ? .024 : .07, start + .004);
       gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
       oscillator.connect(gain); gain.connect(ctx.destination);
       oscillator.onended = () => {oscillator.disconnect(); gain.disconnect();};

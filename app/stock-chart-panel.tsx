@@ -17,6 +17,7 @@ export default function StockChartPanel({code,name,entry}:{code:string;name:stri
     </button>
     <div id="stock-price-plot" hidden={!open}>
       <PriceChart code={code} entry={entry}/>
+      <a className="text-link" href={`https://www.tradingview.com/chart/?symbol=KRX%3A${encodeURIComponent(code)}`} target="_blank" rel="noopener noreferrer">TradingView에서 {name} 차트 열기 ↗</a>
     </div>
   </div>;
 }
